@@ -101,26 +101,87 @@ class KojenerasyonApp {
 
     async loadDashboardData() {
         try {
-            const mockData = {
-                dailyProduction: Math.floor(Math.random() * 1000) + 500,
-                efficiency: Math.floor(Math.random() * 30) + 70,
-                motorsCount: Math.floor(Math.random() * 5) + 3,
-                maintenanceCount: Math.floor(Math.random() * 3) + 1
+            // Google Sheets'ten verileri çek
+            const sheetData = await googleSheets.getMotorData();
+            
+            const motorData = {
+                gm1: {
+                    hours: sheetData.gm1.totalHours || '0.0',
+                    power: sheetData.gm1.totalPower || '0.00',
+                    dailyHours: sheetData.gm1.dailyHours || '0.0',
+                    dailyProduction: sheetData.gm1.dailyProduction || '0.00',
+                    hourlyAvg: sheetData.gm1.hourlyAvg || '0.00'
+                },
+                gm2: {
+                    hours: sheetData.gm2.totalHours || '0.0',
+                    power: sheetData.gm2.totalPower || '0.00',
+                    dailyHours: sheetData.gm2.dailyHours || '0.0',
+                    dailyProduction: sheetData.gm2.dailyProduction || '0.00',
+                    hourlyAvg: sheetData.gm2.hourlyAvg || '0.00'
+                },
+                gm3: {
+                    hours: sheetData.gm3.totalHours || '0.0',
+                    power: sheetData.gm3.totalPower || '0.00',
+                    dailyHours: sheetData.gm3.dailyHours || '0.0',
+                    dailyProduction: sheetData.gm3.dailyProduction || '0.00',
+                    hourlyAvg: sheetData.gm3.hourlyAvg || '0.00'
+                }
             };
             
-            this.updateDashboardCards(mockData);
+            this.updateMotorCards(motorData);
         } catch (error) {
-            console.error('Dashboard verileri yüklenemedi:', error);
-            this.showError('Dashboard verileri yüklenemedi');
+            console.error('Motor verileri yüklenemedi:', error);
+            this.showError('Motor verileri yüklenemedi');
+            // Hata durumunda mock verileri kullan
+            this.loadMockData();
         }
     }
 
-    updateDashboardCards(data) {
+    async loadMockData() {
+        const mockData = {
+            gm1: {
+                hours: (Math.random() * 1000 + 500).toFixed(1),
+                power: (Math.random() * 50 + 10).toFixed(2),
+                dailyHours: (Math.random() * 24).toFixed(1),
+                dailyProduction: (Math.random() * 100 + 20).toFixed(2),
+                hourlyAvg: (Math.random() * 10 + 2).toFixed(2)
+            },
+            gm2: {
+                hours: (Math.random() * 1000 + 500).toFixed(1),
+                power: (Math.random() * 50 + 10).toFixed(2),
+                dailyHours: (Math.random() * 24).toFixed(1),
+                dailyProduction: (Math.random() * 100 + 20).toFixed(2),
+                hourlyAvg: (Math.random() * 10 + 2).toFixed(2)
+            },
+            gm3: {
+                hours: (Math.random() * 1000 + 500).toFixed(1),
+                power: (Math.random() * 50 + 10).toFixed(2),
+                dailyHours: (Math.random() * 24).toFixed(1),
+                dailyProduction: (Math.random() * 100 + 20).toFixed(2),
+                hourlyAvg: (Math.random() * 10 + 2).toFixed(2)
+            }
+        };
+        
+        this.updateMotorCards(mockData);
+    }
+
+    updateMotorCards(data) {
         const elements = {
-            'daily-production': data.dailyProduction + ' kWh',
-            'efficiency': data.efficiency + '%',
-            'motors-count': data.motorsCount,
-            'maintenance-count': data.maintenanceCount
+            'gm1-hours': data.gm1.hours,
+            'gm1-power': data.gm1.power,
+            'gm1-daily-hours': data.gm1.dailyHours,
+            'gm1-daily-production': data.gm1.dailyProduction,
+            'gm1-hourly-avg': data.gm1.hourlyAvg,
+            'gm2-hours': data.gm2.hours,
+            'gm2-power': data.gm2.power,
+            'gm2-daily-hours': data.gm2.dailyHours,
+            'gm2-daily-production': data.gm2.dailyProduction,
+            'gm2-hourly-avg': data.gm2.hourlyAvg,
+            'gm3-hours': data.gm3.hours,
+            'gm3-power': data.gm3.power,
+            'gm3-daily-hours': data.gm3.dailyHours,
+            'gm3-daily-production': data.gm3.dailyProduction,
+            'gm3-hourly-avg': data.gm3.hourlyAvg
         };
 
         Object.keys(elements).forEach(id => {

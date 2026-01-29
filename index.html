@@ -19,12 +19,12 @@
             </div>
             <form id="login-form">
                 <div class="form-group">
-                    <label class="form-label">Email Adresiniz</label>
-                    <input type="email" id="login-email" class="form-input" placeholder="ornek@email.com" required>
+                    <label class="form-label">    Email Adresiniz</label>
+                    <input type="email" id="login-email" class="form-input" placeholder="     ornek@email.com" required>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Şifreniz</label>
-                    <input type="password" id="login-password" class="form-input" placeholder="Şifrenizi girin" required>
+                    <label class="form-label">     Şifreniz</label>
+                    <input type="password" id="login-password" class="form-input" placeholder="     Şifrenizi girin" required>
                 </div>
                 <button type="submit" class="btn" id="login-btn">
                     <span>Giriş Yap</span>
@@ -63,7 +63,7 @@
             <aside class="sidebar">
                 <div class="sidebar-header">
                     <div class="sidebar-title">
-                        <h2>📊 Menü</h2>
+                        <h2>📊 Kojenerasyon Takip Sistemi</h2>
                     </div>
                 </div>
                 <nav class="menu-section">
@@ -104,27 +104,135 @@
                 <!-- Overview Section -->
                 <section id="overview" class="content-section active">
                     <div class="section-card">
-                        <h2><i>📊</i> İstatistikler</h2>
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-icon energy">⚡</div>
-                                <div class="stat-value" id="daily-production">0</div>
-                                <div class="stat-label">Günlük Üretim (kWh)</div>
+                        <h2><i>⚡</i> Motor Durumları</h2>
+                        <div class="motors-grid">
+                            <div class="motor-card">
+                                <div class="motor-header">
+                                    <div class="motor-title">GM-1</div>
+                                    <div class="motor-status active">AKTİF</div>
+                                </div>
+                                <div class="motor-details">
+                                    <div class="motor-info">
+                                        <span class="info-label">Marka:</span>
+                                        <span class="info-value">Jenbacher</span>
+                                    </div>
+                                    <div class="motor-info">
+                                        <span class="info-label">Model:</span>
+                                        <span class="info-value">J-620</span>
+                                    </div>
+                                    <div class="motor-info">
+                                        <span class="info-label">Güç:</span>
+                                        <span class="info-value">3450 MWh</span>
+                                    </div>
+                                    <div class="motor-stats">
+                                        <div class="stat-item">
+                                            <div class="stat-label">Toplam Çalışma Saati</div>
+                                            <div class="stat-value" id="gm1-hours">0.0</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Toplam Üretilen Güç (MWh)</div>
+                                            <div class="stat-value" id="gm1-power">0.00</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Saatlik Ortalama Üretim (MW)</div>
+                                            <div class="stat-value" id="gm1-hourly-avg">0.00</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Günlük Çalışma Saati</div>
+                                            <div class="stat-value" id="gm1-daily-hours">0.0</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Günlük Üretim (MWh)</div>
+                                            <div class="stat-value" id="gm1-daily-production">0.00</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="stat-card">
-                                <div class="stat-icon efficiency">📈</div>
-                                <div class="stat-value" id="efficiency">0%</div>
-                                <div class="stat-label">Verimlilik</div>
+                            
+                            <div class="motor-card">
+                                <div class="motor-header">
+                                    <div class="motor-title">GM-2</div>
+                                    <div class="motor-status active">AKTİF</div>
+                                </div>
+                                <div class="motor-details">
+                                    <div class="motor-info">
+                                        <span class="info-label">Marka:</span>
+                                        <span class="info-value">Jenbacher</span>
+                                    </div>
+                                    <div class="motor-info">
+                                        <span class="info-label">Model:</span>
+                                        <span class="info-value">J-620</span>
+                                    </div>
+                                    <div class="motor-info">
+                                        <span class="info-label">Güç:</span>
+                                        <span class="info-value">3450 MWh</span>
+                                    </div>
+                                    <div class="motor-stats">
+                                        <div class="stat-item">
+                                            <div class="stat-label">Toplam Çalışma Saati</div>
+                                            <div class="stat-value" id="gm2-hours">0.0</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Toplam Üretilen Güç (MWh)</div>
+                                            <div class="stat-value" id="gm2-power">0.00</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Saatlik Ortalama Üretim (MW)</div>
+                                            <div class="stat-value" id="gm2-hourly-avg">0.00</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Günlük Çalışma Saati</div>
+                                            <div class="stat-value" id="gm2-daily-hours">0.0</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Günlük Üretim (MWh)</div>
+                                            <div class="stat-value" id="gm2-daily-production">0.00</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="stat-card">
-                                <div class="stat-icon motors">🔧</div>
-                                <div class="stat-value" id="motors-count">0</div>
-                                <div class="stat-label">Aktif Motorlar</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-icon maintenance">🛠️</div>
-                                <div class="stat-value" id="maintenance-count">0</div>
-                                <div class="stat-label">Bakım Planları</div>
+                            
+                            <div class="motor-card">
+                                <div class="motor-header">
+                                    <div class="motor-title">GM-3</div>
+                                    <div class="motor-status inactive">PASİF</div>
+                                </div>
+                                <div class="motor-details">
+                                    <div class="motor-info">
+                                        <span class="info-label">Marka:</span>
+                                        <span class="info-value">Jenbacher</span>
+                                    </div>
+                                    <div class="motor-info">
+                                        <span class="info-label">Model:</span>
+                                        <span class="info-value">J-620</span>
+                                    </div>
+                                    <div class="motor-info">
+                                        <span class="info-label">Güç:</span>
+                                        <span class="info-value">3250 MWh</span>
+                                    </div>
+                                    <div class="motor-stats">
+                                        <div class="stat-item">
+                                            <div class="stat-label">Toplam Çalışma Saati</div>
+                                            <div class="stat-value" id="gm3-hours">0.0</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Toplam Üretilen Güç (MWh)</div>
+                                            <div class="stat-value" id="gm3-power">0.00</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Saatlik Ortalama Üretim (MW)</div>
+                                            <div class="stat-value" id="gm3-hourly-avg">0.00</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Günlük Çalışma Saati</div>
+                                            <div class="stat-value" id="gm3-daily-hours">0.0</div>
+                                        </div>
+                                        <div class="stat-item">
+                                            <div class="stat-label">Günlük Üretim (MWh)</div>
+                                            <div class="stat-value" id="gm3-daily-production">0.00</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -220,8 +328,9 @@
     <!-- Alert Container -->
     <div class="alert-overlay" id="alert-container"></div>
 
-    <script src="js/app.js"></script>
+    <script src="js/google-sheets.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/data-manager.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
