@@ -338,7 +338,13 @@ class KojenerasyonApp {
                     sheetsSuccess = true;
                     this.showSuccess(`${date} tarihine ait saatlik veriler Google Sheets'e başarıyla kaydedildi`);
                 } catch (sheetsError) {
-                    console.warn('Google Sheets kaydı başarısız, LocalStorage kullanılıyor:', sheetsError.message);
+                    if (sheetsError.message === 'API_YAZMA_IZNI_YOK') {
+                        console.warn('Google Sheets yazma izni yok, sadece LocalStorage kullanılıyor');
+                        this.showSuccess(`${date} tarihine ait saatlik veriler LocalStorage\'a kaydedildi (Google Sheets yazma izni gerekli)`);
+                    } else {
+                        console.warn('Google Sheets kaydı başarısız, LocalStorage kullanılıyor:', sheetsError.message);
+                        this.showSuccess(`${date} tarihine ait saatlik veriler başarıyla kaydedildi (LocalStorage)`);
+                    }
                     sheetsSuccess = false;
                 }
             }

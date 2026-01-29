@@ -347,10 +347,26 @@ class GoogleSheetsAPI {
         };
 
         try {
-            const result = await this.makeRequest(`values/${range}?valueInputOption=USER_ENTERED`, 'PUT', data);
+            // Önce mevcut verileri oku
+            const existingData = await this.readData(range.replace('!A:H', '!A:H'));
+            console.log('Mevcut veriler:', existingData.length, 'satır');
+            
+            // Yeni verileri mevcutlere ekle
+            const allData = [...existingData, ...values];
+            console.log('Toplam veri:', allData.length, 'satır');
+            
+            // Tüm verileri yaz
+            const result = await this.makeRequest(`values/${range}?valueInputOption=USER_ENTERED`, 'PUT', { values: allData });
             return result;
         } catch (error) {
             console.error('Veri yazma hatası:', error);
+            
+            // Eğer yazma izni yoksa, appendData'yı dene
+            if (error.message.includes('401') || error.message.includes('403')) {
+                console.log('⚠️ Yazma izni yok, appendData deneniyor...');
+                return await this.appendData(range, values);
+            }
+            
             throw error;
         }
     }
@@ -373,6 +389,13 @@ class GoogleSheetsAPI {
             return result;
         } catch (error) {
             console.error('❌ Veri ekleme hatası:', error);
+            
+            // Eğer append da çalışmazsa, son çare olarak LocalStorage'a kaydet
+            if (error.message.includes('401') || error.message.includes('403')) {
+                console.log('⚠️ Append de çalışmıyor, LocalStorage kullanılıyor...');
+                throw new Error('API_YAZMA_IZNI_YOK');
+            }
+            
             throw error;
         }
     }
