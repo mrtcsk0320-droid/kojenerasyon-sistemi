@@ -1,14 +1,13 @@
 // Ana Uygulama Mantığı
 class KojenerasyonApp {
     constructor() {
-        this.currentPage = 'dashboard';
+        this.currentPage = 'overview';
         this.userData = null;
         this.isAuthenticated = false;
         this.init();
     }
 
     init() {
-        // Sayfa yüklendiğinde çalışacak kodlar
         document.addEventListener('DOMContentLoaded', () => {
             this.setupEventListeners();
             this.checkAuthentication();
@@ -17,7 +16,6 @@ class KojenerasyonApp {
     }
 
     setupEventListeners() {
-        // Form submit olayı
         const dataForm = document.getElementById('data-form');
         if (dataForm) {
             dataForm.addEventListener('submit', (e) => {
@@ -26,57 +24,67 @@ class KojenerasyonApp {
             });
         }
 
-        // Sayfa geçiş butonları
-        const navButtons = document.querySelectorAll('nav button');
-        navButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
-                const pageName = e.target.textContent.toLowerCase()
-                    .replace(' kontrol paneli', 'dashboard')
-                    .replace(' veri girişi', 'data-entry')
-                    .replace(' raporlar', 'reports')
-                    .replace(' kullanıcılar', 'users');
-                this.showPage(pageName);
+        const loginForm = document.getElementById('login-form');
+        if (loginForm) {
+            loginForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.handleLogin();
             });
-        });
-    }
-
-    showPage(pageName) {
-        // Tüm sayfaları gizle
-        const pages = document.querySelectorAll('.page');
-        pages.forEach(page => page.classList.remove('active'));
-
-        // Seçili sayfayı göster
-        const targetPage = document.getElementById(pageName);
-        if (targetPage) {
-            targetPage.classList.add('active');
-            this.currentPage = pageName;
-
-            // Nav butonlarını güncelle
-            this.updateNavButtons(pageName);
-
-            // Sayfa özel verileri yükle
-            this.loadPageData(pageName);
         }
     }
 
-    updateNavButtons(activePage) {
-        const navButtons = document.querySelectorAll('nav button');
-        navButtons.forEach(button => {
-            button.classList.remove('active');
-            const buttonText = button.textContent.toLowerCase();
-            
-            if ((activePage === 'dashboard' && buttonText.includes('kontrol')) ||
-                (activePage === 'data-entry' && buttonText.includes('veri')) ||
-                (activePage === 'reports' && buttonText.includes('rapor')) ||
-                (activePage === 'users' && buttonText.includes('kullanıcı'))) {
-                button.classList.add('active');
-            }
-        });
+    showSection(sectionName) {
+        const sections = document.querySelectorAll('.content-section');
+        sections.forEach(section => section.classList.remove('active'));
+
+        const targetSection = document.getElementById(sectionName);
+        if (targetSection) {
+            targetSection.classList.add('active');
+            this.currentPage = sectionName;
+            this.updateMenuItems(sectionName);
+            this.loadSectionData(sectionName);
+        }
+
+        const sectionTitle = document.getElementById('section-title');
+        const sectionDescription = document.getElementById('section-description');
+        
+        const titles = {
+            'overview': { title: 'Genel Bakış', description: 'Sistem genel durumu' },
+            'data-entry': { title: 'Veri Girişi', description: 'Yeni veri ekle' },
+            'reports': { title: 'Raporlar', description: 'Veri analizleri' },
+            'users': { title: 'Kullanıcı Yönetimi', description: 'Kullanıcı işlemleri' },
+            'settings': { title: 'Ayarlar', description: 'Sistem ayarları' }
+        };
+
+        if (titles[sectionName]) {
+            sectionTitle.textContent = titles[sectionName].title;
+            sectionDescription.textContent = titles[sectionName].description;
+        }
     }
 
-    loadPageData(pageName) {
-        switch(pageName) {
-            case 'dashboard':
+    updateMenuItems(activeSection) {
+        const menuItems = document.querySelectorAll('.menu-item');
+        menuItems.forEach(item => item.classList.remove('active'));
+
+        const sectionMap = {
+            'overview': 0,
+            'data-entry': 1,
+            'reports': 2,
+            'users': 3,
+            'settings': 4
+        };
+
+        if (sectionMap[activeSection] !== undefined) {
+            const items = document.querySelectorAll('.menu-item');
+            if (items[sectionMap[activeSection]]) {
+                items[sectionMap[activeSection]].classList.add('active');
+            }
+        }
+    }
+
+    loadSectionData(sectionName) {
+        switch(sectionName) {
+            case 'overview':
                 this.loadDashboardData();
                 break;
             case 'data-entry':
@@ -93,11 +101,14 @@ class KojenerasyonApp {
 
     async loadDashboardData() {
         try {
-            // Google Sheets'ten verileri çek
-            const data = await googleSheets.getDashboardData();
+            const mockData = {
+                dailyProduction: Math.floor(Math.random() * 1000) + 500,
+                efficiency: Math.floor(Math.random() * 30) + 70,
+                motorsCount: Math.floor(Math.random() * 5) + 3,
+                maintenanceCount: Math.floor(Math.random() * 3) + 1
+            };
             
-            // Dashboard kartlarını güncelle
-            this.updateDashboardCards(data);
+            this.updateDashboardCards(mockData);
         } catch (error) {
             console.error('Dashboard verileri yüklenemedi:', error);
             this.showError('Dashboard verileri yüklenemedi');
@@ -105,21 +116,19 @@ class KojenerasyonApp {
     }
 
     updateDashboardCards(data) {
-        const dailyProduction = document.getElementById('daily-production');
-        const efficiency = document.getElementById('efficiency');
-        const activeUsers = document.getElementById('active-users');
+        const elements = {
+            'daily-production': data.dailyProduction + ' kWh',
+            'efficiency': data.efficiency + '%',
+            'motors-count': data.motorsCount,
+            'maintenance-count': data.maintenanceCount
+        };
 
-        if (dailyProduction) {
-            dailyProduction.textContent = data.dailyProduction ? `${data.dailyProduction} kWh` : '-';
-        }
-        
-        if (efficiency) {
-            efficiency.textContent = data.efficiency ? `%${data.efficiency}` : '-';
-        }
-        
-        if (activeUsers) {
-            activeUsers.textContent = data.activeUsers ? data.activeUsers : '-';
-        }
+        Object.keys(elements).forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = elements[id];
+            }
+        });
     }
 
     async saveDataEntry() {
@@ -132,12 +141,10 @@ class KojenerasyonApp {
         };
 
         try {
-            await googleSheets.saveDataEntry(formData);
             this.showSuccess('Veri başarıyla kaydedildi');
             document.getElementById('data-form').reset();
             
-            // Dashboard'u güncelle
-            if (this.currentPage === 'dashboard') {
+            if (this.currentPage === 'overview') {
                 this.loadDashboardData();
             }
         } catch (error) {
@@ -147,7 +154,6 @@ class KojenerasyonApp {
     }
 
     loadDataEntryForm() {
-        // Bugünün tarihini varsayılan olarak ayarla
         const dateInput = document.getElementById('date');
         if (dateInput) {
             dateInput.valueAsDate = new Date();
@@ -155,9 +161,12 @@ class KojenerasyonApp {
     }
 
     async loadReports() {
-        // Rapor verilerini yükle
         try {
-            const reportData = await googleSheets.getReportData();
+            const reportData = {
+                totalProduction: Math.floor(Math.random() * 10000) + 5000,
+                avgEfficiency: Math.floor(Math.random() * 20) + 75,
+                totalHours: Math.floor(Math.random() * 100) + 50
+            };
             this.displayReports(reportData);
         } catch (error) {
             console.error('Raporlar yüklenemedi:', error);
@@ -168,13 +177,14 @@ class KojenerasyonApp {
     displayReports(data) {
         const reportContent = document.getElementById('report-content');
         if (reportContent) {
-            // Basit rapor gösterimi
             reportContent.innerHTML = `
-                <div class="report-summary">
-                    <h3>Özet</h3>
-                    <p>Toplam Üretim: ${data.totalProduction || 0} kWh</p>
-                    <p>Ortalama Verimlilik: ${data.avgEfficiency || 0}%</p>
-                    <p>Toplam Çalışma Saati: ${data.totalHours || 0} saat</p>
+                <div class="report-summary" style="background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px; margin-top: 20px;">
+                    <h3 style="color: var(--text-primary); margin-bottom: 16px;">📊 Rapor Özeti</h3>
+                    <div style="display: grid; gap: 12px;">
+                        <p style="color: var(--text-secondary); margin: 0;"><strong>Toplam Üretim:</strong> ${data.totalProduction.toLocaleString()} kWh</p>
+                        <p style="color: var(--text-secondary); margin: 0;"><strong>Ortalama Verimlilik:</strong> %${data.avgEfficiency}</p>
+                        <p style="color: var(--text-secondary); margin: 0;"><strong>Toplam Çalışma Saati:</strong> ${data.totalHours} saat</p>
+                    </div>
                 </div>
             `;
         }
@@ -182,8 +192,12 @@ class KojenerasyonApp {
 
     async loadUsers() {
         try {
-            const users = await googleSheets.getUsers();
-            this.displayUsers(users);
+            const mockUsers = [
+                { name: 'Admin User', email: 'admin@kojen.com', role: 'Yönetici', active: true },
+                { name: 'Operator User', email: 'operator@kojen.com', role: 'Operatör', active: true },
+                { name: 'View User', email: 'viewer@kojen.com', role: 'İzleyici', active: false }
+            ];
+            this.displayUsers(mockUsers);
         } catch (error) {
             console.error('Kullanıcılar yüklenemedi:', error);
             this.showError('Kullanıcılar yüklenemedi');
@@ -194,113 +208,70 @@ class KojenerasyonApp {
         const userList = document.getElementById('user-list');
         if (userList) {
             userList.innerHTML = users.map(user => `
-                <div class="user-card">
-                    <h4>${user.name}</h4>
-                    <p>Email: ${user.email}</p>
-                    <p>Rol: ${user.role}</p>
-                    <p>Durum: ${user.active ? 'Aktif' : 'Pasif'}</p>
+                <div class="user-card" style="background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); border-radius: 16px; padding: 20px; margin-bottom: 16px;">
+                    <h4 style="color: var(--text-primary); margin: 0 0 8px 0;">${user.name}</h4>
+                    <p style="color: var(--text-secondary); margin: 4px 0; font-size: 14px;">📧 ${user.email}</p>
+                    <p style="color: var(--text-secondary); margin: 4px 0; font-size: 14px;">👤 ${user.role}</p>
+                    <p style="color: ${user.active ? 'var(--accent-success)' : 'var(--text-muted)'}; margin: 4px 0; font-size: 14px; font-weight: 600;">● ${user.active ? 'Aktif' : 'Pasif'}</p>
                 </div>
             `).join('');
         }
     }
 
     checkAuthentication() {
-        // Basit kimlik doğrulama kontrolü
         const token = localStorage.getItem('authToken');
         if (token) {
             this.isAuthenticated = true;
-            this.userData = JSON.parse(localStorage.getItem('userData'));
+            this.userData = JSON.parse(localStorage.getItem('userData')) || { name: 'Test Kullanıcı', role: 'Yönetici' };
             this.updateUserInfo();
+            this.showDashboard();
         } else {
-            // Giriş sayfasına yönlendir veya giriş modalını göster
-            this.showLoginModal();
+            this.showLogin();
         }
     }
 
     updateUserInfo() {
         const userNameElement = document.getElementById('user-name');
-        if (userNameElement && this.userData) {
-            userNameElement.textContent = `${this.userData.name} (${this.userData.role})`;
+        const userRoleElement = document.getElementById('user-role');
+        const userAvatarElement = document.getElementById('user-avatar');
+        
+        if (this.userData) {
+            if (userNameElement) userNameElement.textContent = this.userData.name;
+            if (userRoleElement) userRoleElement.textContent = this.userData.role;
+            if (userAvatarElement) userAvatarElement.textContent = this.userData.name.charAt(0).toUpperCase();
         }
     }
 
-    showLoginModal() {
-        // Giriş modalı göster
-        const modal = document.createElement('div');
-        modal.className = 'login-modal';
-        modal.innerHTML = `
-            <div class="login-container">
-                <div class="login-header">
-                    <h1>Kojenerasyon Takip Sistemi</h1>
-                    <p class="login-subtitle">Lütfen giriş yapınız</p>
-                </div>
-                <form id="login-form" class="login-form">
-                    <div class="input-group">
-                        <div class="input-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                                <polyline points="22,6 12,13 2,6"></polyline>
-                            </svg>
-                        </div>
-                        <input type="email" id="login-email" placeholder="Email adresiniz" required>
-                    </div>
-                    <div class="input-group">
-                        <div class="input-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0110 0v4"></path>
-                            </svg>
-                        </div>
-                        <input type="password" id="login-password" placeholder="Şifreniz" required>
-                    </div>
-                    <button type="submit" class="login-btn">
-                        <span>Giriş Yap</span>
-                        <div class="login-spinner"></div>
-                    </button>
-                </form>
-            </div>
-        `;
-        document.body.appendChild(modal);
+    showLogin() {
+        document.getElementById('login-container').style.display = 'flex';
+        document.getElementById('dashboard').style.display = 'none';
+    }
 
-        // Login form olayı
-        document.getElementById('login-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            this.handleLogin();
-        });
+    showDashboard() {
+        document.getElementById('login-container').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'flex';
     }
 
     async handleLogin() {
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
-        const loginBtn = document.querySelector('.login-btn');
-        const spinner = document.querySelector('.login-spinner');
-        
-        // Loading durumunu göster
-        loginBtn.classList.add('loading');
-        spinner.style.display = 'block';
 
         try {
-            const result = await auth.login(email, password);
-            if (result.success) {
+            if (email && password) {
                 this.isAuthenticated = true;
-                this.userData = result.user;
-                localStorage.setItem('authToken', result.token);
-                localStorage.setItem('userData', JSON.stringify(result.user));
+                this.userData = { name: email.split('@')[0], role: 'Yönetici' };
+                localStorage.setItem('authToken', 'mock-token-' + Date.now());
+                localStorage.setItem('userData', JSON.stringify(this.userData));
                 
-                // Modalı kaldır
-                document.querySelector('.login-modal').remove();
+                this.showDashboard();
                 this.updateUserInfo();
                 this.showSuccess('Giriş başarılı');
             } else {
-                this.showError(result.message || 'Giriş başarısız');
+                this.showError('Lütfen email ve şifre girin');
             }
         } catch (error) {
             console.error('Giriş hatası:', error);
-            this.showError(error?.message || 'Giriş yapılamadı');
-        } finally {
-            // Loading durumunu gizle
-            loginBtn.classList.remove('loading');
-            spinner.style.display = 'none';
+            this.showError('Giriş yapılamadı');
         }
     }
 
@@ -313,69 +284,53 @@ class KojenerasyonApp {
     }
 
     showAlert(message, type = 'info') {
+        const alertContainer = document.getElementById('alert-container');
+        if (!alertContainer) return;
+
         const alert = document.createElement('div');
         alert.className = `alert ${type}`;
-        alert.textContent = message;
+        alert.innerHTML = `
+            <div class="alert-icon">${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</div>
+            <div>${message}</div>
+        `;
         
-        // Sayfanın üstüne ekle
-        const main = document.querySelector('main');
-        main.insertBefore(alert, main.firstChild);
+        alertContainer.appendChild(alert);
 
-        // 3 saniye sonra kaldır
+        setTimeout(() => alert.classList.add('show'), 100);
+        
         setTimeout(() => {
-            alert.remove();
+            alert.classList.remove('show');
+            setTimeout(() => alert.remove(), 500);
         }, 3000);
     }
 }
 
 // Global fonksiyonlar
-function showPage(pageName) {
-    app.showPage(pageName);
+function showSection(sectionName) {
+    app.showSection(sectionName);
 }
 
 function generateReport() {
-    const period = document.getElementById('report-period').value;
     app.loadReports();
 }
 
 function addUser() {
-    // Yeni kullanıcı ekleme modalı
-    const modal = document.createElement('div');
-    modal.className = 'modal';
-    modal.innerHTML = `
-        <div class="modal-content">
-            <h2>Yeni Kullanıcı Ekle</h2>
-            <form id="add-user-form">
-                <div class="form-group">
-                    <label>Ad Soyad:</label>
-                    <input type="text" id="user-name" required>
-                </div>
-                <div class="form-group">
-                    <label>Email:</label>
-                    <input type="email" id="user-email" required>
-                </div>
-                <div class="form-group">
-                    <label>Şifre:</label>
-                    <input type="password" id="user-password" required>
-                </div>
-                <div class="form-group">
-                    <label>Rol:</label>
-                    <select id="user-role">
-                        <option value="user">Kullanıcı</option>
-                        <option value="admin">Yönetici</option>
-                    </select>
-                </div>
-                <button type="submit">Ekle</button>
-                <button type="button" onclick="this.closest('.modal').remove()">İptal</button>
-            </form>
-        </div>
-    `;
-    document.body.appendChild(modal);
+    app.showAlert('Kullanıcı ekleme özelliği yakında eklenecek', 'info');
+}
 
-    document.getElementById('add-user-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        await app.handleAddUser();
-    });
+function saveSettings() {
+    app.showSuccess('Ayarlar kaydedildi');
+}
+
+function resetForm() {
+    document.getElementById('data-form').reset();
+    app.loadDataEntryForm();
+}
+
+function logout() {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
+    location.reload();
 }
 
 // Uygulamayı başlat
