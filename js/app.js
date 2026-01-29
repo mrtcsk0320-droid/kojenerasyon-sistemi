@@ -129,6 +129,10 @@ class KojenerasyonApp {
             };
             
             this.updateMotorCards(motorData);
+            
+            // Admin ise düzenleme butonlarını göster
+            this.checkAdminStatus();
+            
         } catch (error) {
             console.error('Motor verileri yüklenemedi:', error);
             this.showError('Motor verileri yüklenemedi');
@@ -163,6 +167,43 @@ class KojenerasyonApp {
         };
         
         this.updateMotorCards(mockData);
+    }
+
+    checkAdminStatus() {
+        // Kullanıcının admin olup olmadığını kontrol et
+        const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+        const isAdmin = userData.role === 'ADMIN' || userData.role === 'admin';
+        
+        // Geçici test için herkes admin olsun
+        const testMode = true; // Bunu false yapınca normal döner
+        
+        console.log('Kullanıcı rolü:', userData.role);
+        console.log('Admin mi:', isAdmin);
+        console.log('Test modu:', testMode);
+        
+        // Manuel olarak butonları göster
+        document.querySelectorAll('.status-edit-btn').forEach(btn => {
+            btn.style.display = 'flex';
+            console.log('Buton gösterildi:', btn.id);
+        });
+        
+        if (isAdmin || testMode) {
+            // Admin ise düzenleme butonlarını göster
+            document.querySelectorAll('.status-edit-btn').forEach(btn => {
+                btn.style.display = 'flex';
+            });
+            console.log('Admin butonları gösterildi');
+        } else {
+            console.log('Admin değil, butonlar gizlendi');
+        }
+    }
+
+    updateMotorStatus(motorId, status) {
+        const statusElement = document.getElementById(`${motorId}-status`);
+        if (statusElement) {
+            statusElement.textContent = status;
+            statusElement.className = `motor-status ${status === 'AKTİF' ? 'active' : 'inactive'}`;
+        }
     }
 
     updateMotorCards(data) {
@@ -281,14 +322,25 @@ class KojenerasyonApp {
 
     checkAuthentication() {
         const token = localStorage.getItem('authToken');
-        if (token) {
+        const storedUserDataRaw = localStorage.getItem('userData');
+        const storedUserData = storedUserDataRaw ? JSON.parse(storedUserDataRaw) : null;
+
+        // Sadece token var diye otomatik giriş yapma.
+        // Kullanıcı verisi yoksa/bozuksa login ekranına dön.
+        if (token && storedUserData && storedUserData.email) {
             this.isAuthenticated = true;
-            this.userData = JSON.parse(localStorage.getItem('userData')) || { name: 'Test Kullanıcı', role: 'Yönetici' };
+            this.userData = storedUserData;
             this.updateUserInfo();
             this.showDashboard();
-        } else {
-            this.showLogin();
+            return;
         }
+
+        // Geçersiz oturumu temizle
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+        this.isAuthenticated = false;
+        this.userData = null;
+        this.showLogin();
     }
 
     updateUserInfo() {
@@ -310,7 +362,9 @@ class KojenerasyonApp {
 
     showDashboard() {
         document.getElementById('login-container').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'flex';
+        document.getElementById('dashboard').style.display = 'block';
+        this.loadDashboardData();
+        this.checkAdminStatus(); // Admin kontrolünü buraya ekledim
     }
 
     async handleLogin() {
@@ -319,20 +373,42 @@ class KojenerasyonApp {
 
         try {
             if (email && password) {
-                this.isAuthenticated = true;
-                this.userData = { name: email.split('@')[0], role: 'Yönetici' };
-                localStorage.setItem('authToken', 'mock-token-' + Date.now());
-                localStorage.setItem('userData', JSON.stringify(this.userData));
+                console.log('Giriş denemesi:', email);
                 
-                this.showDashboard();
-                this.updateUserInfo();
-                this.showSuccess('Giriş başarılı');
+                // Google Sheets'ten kullanıcı doğrula
+                const user = await googleSheets.validateUser(email, password);
+                
+                if (user) {
+                    console.log('Giriş başarılı:', user);
+                    this.isAuthenticated = true;
+                    this.userData = user;
+                    localStorage.setItem('authToken', 'token-' + Date.now());
+                    localStorage.setItem('userData', JSON.stringify(user));
+                    
+                    this.showDashboard();
+                    this.updateUserInfo();
+                    this.showSuccess('Giriş başarılı');
+                    this.checkAdminStatus(); // Giriş sonrası admin kontrolü
+                } else {
+                    console.log('Giriş başarısız: Kullanıcı bulunamadı veya şifre hatalı');
+                    // Güvenlik: başarısız girişte state'i ve localStorage'ı temizle
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('userData');
+                    this.isAuthenticated = false;
+                    this.userData = null;
+                    this.showError('Email veya şifre hatalı');
+                }
             } else {
                 this.showError('Lütfen email ve şifre girin');
             }
         } catch (error) {
             console.error('Giriş hatası:', error);
-            this.showError('Giriş yapılamadı');
+            // Güvenlik: hata durumunda state'i ve localStorage'ı temizle
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userData');
+            this.isAuthenticated = false;
+            this.userData = null;
+            this.showError('Giriş yapılamadı. Lütfen bağlantınızı kontrol edin.');
         }
     }
 
@@ -367,6 +443,39 @@ class KojenerasyonApp {
 }
 
 // Global fonksiyonlar
+function toggleMotorStatus(motorId) {
+    console.log('Durum değiştirme:', motorId);
+    
+    // Kullanıcının admin olup olmadığını kontrol et
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    const isAdmin = userData.role === 'ADMIN' || userData.role === 'admin';
+    
+    console.log('Kullanıcı rolü:', userData.role);
+    console.log('Admin mi:', isAdmin);
+    
+    if (!isAdmin) {
+        app.showError('Bu işlemi yapmaya yetkiniz yok! Sadece adminler değiştirebilir.');
+        return;
+    }
+    
+    const statusElement = document.getElementById(`${motorId}-status`);
+    if (!statusElement) {
+        console.error('Status element bulunamadı:', motorId);
+        return;
+    }
+    
+    const currentStatus = statusElement.textContent.trim();
+    const newStatus = currentStatus === 'AKTİF' ? 'PASİF' : 'AKTİF';
+    
+    statusElement.textContent = newStatus;
+    statusElement.className = `motor-status clickable ${newStatus === 'AKTİF' ? 'active' : 'inactive'}`;
+    
+    console.log(`${motorId} durumu: ${newStatus}`);
+    
+    // Başarı mesajı
+    app.showSuccess(`${motorId.toUpperCase()} durumu "${newStatus}" olarak güncellendi`);
+}
+
 function showSection(sectionName) {
     app.showSection(sectionName);
 }
@@ -396,3 +505,11 @@ function logout() {
 
 // Uygulamayı başlat
 const app = new KojenerasyonApp();
+
+// Sayfa yüklendiğinde admin kontrolünü çalıştır
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        console.log('Sayfa yüklendi, admin kontrolü başlatılıyor...');
+        app.checkAdminStatus();
+    }, 1000);
+});

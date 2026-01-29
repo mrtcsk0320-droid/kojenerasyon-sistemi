@@ -487,7 +487,27 @@ body::before {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+    position: relative;
+}
+
+.motor-status.clickable {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+}
+
+.motor-status.clickable:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.motor-status.clickable:active {
+    transform: scale(0.95);
+}
+
+.motor-header {
     padding-bottom: 16px;
     border-bottom: 1px solid var(--glass-border);
 }
@@ -635,12 +655,15 @@ body::before {
 }
 
 /* Alerts */
-.alert-overlay {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 10000;
-    max-width: 400px;
+.alert-overlay,
+#alert-container {
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    top: auto !important;
+    left: auto !important;
+    z-index: 10000 !important;
+    max-width: 400px !important;
 }
 
 .alert {

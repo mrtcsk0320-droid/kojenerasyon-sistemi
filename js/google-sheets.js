@@ -196,8 +196,24 @@ class GoogleSheetsAPI {
     async passwordMatches(storedPassword, providedPassword) {
         if (!storedPassword) return false;
 
-        const hashedProvided = await this.sha256Hex(providedPassword);
-        return storedPassword === hashedProvided;
+        // Format: "<salt>:<hash>" (salt içinde '-' olabilir)
+        if (storedPassword.includes(':')) {
+            const idx = storedPassword.indexOf(':');
+            const salt = storedPassword.slice(0, idx);
+            const expectedHash = storedPassword.slice(idx + 1);
+
+            // Olası iki yaygın formatı dene
+            const candidate1 = await this.sha256Hex(`${salt}${providedPassword}`);
+            if (candidate1 === expectedHash) return true;
+
+            const candidate2 = await this.sha256Hex(`${providedPassword}${salt}`);
+            if (candidate2 === expectedHash) return true;
+
+            return false;
+        }
+
+        // Düz metin şifreler için doğrudan karşılaştır
+        return storedPassword === providedPassword;
     }
 
     // Genel API isteği gönder
@@ -422,16 +438,26 @@ class GoogleSheetsAPI {
     // Kullanıcı doğrula
     async validateUser(email, password) {
         try {
+            console.log('Kullanıcı doğrulanıyor:', email);
+            
+            // Google Sheets'ten kullanıcıları çek
             const users = await this.getUsers();
+            console.log('Toplam kullanıcı sayısı:', users.length);
+            console.log('Kullanıcılar:', users);
+            
             const normalizedEmail = (email || '').toString().trim().toLowerCase();
             const user = users.find(u => (u.email || '').toString().trim().toLowerCase() === normalizedEmail);
             
+            console.log('Bulunan kullanıcı:', user);
+            
             if (user && user.active && await this.passwordMatches(user.password, password)) {
+                console.log('Kullanıcı doğrulandı:', user.email);
                 // Şifreyi güvenlik için kaldır
                 const { password: _, ...userWithoutPassword } = user;
                 return userWithoutPassword;
             }
             
+            console.log('Kullanıcı doğrulanamadı');
             return null;
         } catch (error) {
             console.error('Kullanıcı doğrulanamadı:', error);
