@@ -8,16 +8,58 @@ class GoogleSheetsAPI {
 
     // API anahtarını ayarla
     setApiKey(apiKey) {
-        this.apiKey = 'AIzaSyCcF6wYrhr2i41qaBti9Rgaas1a5XcWnBk';
+        this.apiKey = apiKey;
     }
 
     // Spreadsheet ID'yi ayarla
     setSpreadsheetId(spreadsheetId) {
-        this.spreadsheetId = '1ulhuSPzsICrbNX0jAIqQcFeWcQBXifSAXWwJzfmmyCc';
+        this.spreadsheetId = spreadsheetId;
+    }
+
+    normalizeRole(role) {
+        return (role || '').toString().trim().toUpperCase();
+    }
+
+    parseActive(value) {
+        if (value === undefined || value === null || value === '') return true;
+        return value.toString().trim().toLowerCase() === 'true';
+    }
+
+    async sha256Hex(input) {
+        const encoder = new TextEncoder();
+        const bytes = encoder.encode(input);
+        const digest = await crypto.subtle.digest('SHA-256', bytes);
+        return Array.from(new Uint8Array(digest))
+            .map(b => b.toString(16).padStart(2, '0'))
+            .join('');
+    }
+
+    async passwordMatches(storedPassword, providedPassword) {
+        if (!storedPassword) return false;
+
+        const stored = storedPassword.toString().trim();
+        const provided = (providedPassword ?? '').toString();
+
+        if (stored === provided) return true;
+
+        const parts = stored.split(':');
+        if (parts.length < 2) return false;
+
+        const salt = parts[0];
+        const expectedHash = parts.slice(1).join(':').trim().toLowerCase();
+
+        const hash1 = await this.sha256Hex(`${salt}${provided}`);
+        if (hash1 === expectedHash) return true;
+
+        const hash2 = await this.sha256Hex(`${provided}${salt}`);
+        return hash2 === expectedHash;
     }
 
     // Genel API isteği gönder
     async makeRequest(endpoint, method = 'GET', data = null) {
+        if (!this.apiKey || this.apiKey === 'YOUR_API_KEY_HERE' || !this.spreadsheetId || this.spreadsheetId === 'YOUR_SPREADSHEET_ID_HERE') {
+            throw new Error('Google Sheets yapılandırması eksik. js/google-sheets.js içinde apiKey ve spreadsheetId değerlerini girin (constructor satırları).');
+        }
         const url = `${this.baseURL}/${this.spreadsheetId}/${endpoint}?key=${this.apiKey}`;
         
         const options = {
@@ -194,15 +236,15 @@ class GoogleSheetsAPI {
     // Kullanıcıları getir
     async getUsers() {
         try {
-            const usersRange = `'Kullanıcılar'!A2:E1000`; // Ad, Email, Şifre, Rol, Durum
+            const usersRange = `'Kullanıcılar'!A2:E1000`;
             const values = await this.readData(usersRange);
 
             const users = values.map(row => ({
-                name: row[0] || '',
-                email: row[1] || '',
-                password: row[2] || '', // Güvenlik için şifreler genellikle gösterilmez
-                role: row[3] || 'user',
-                active: (row[4] || 'true').toLowerCase() === 'true'
+                email: row[0] || '',
+                role: this.normalizeRole(row[1] || ''),
+                password: row[2] || '',
+                name: row[3] || '',
+                active: this.parseActive(row[4])
             }));
 
             return users;
@@ -217,10 +259,10 @@ class GoogleSheetsAPI {
         try {
             const range = `'Kullanıcılar'!A:E`;
             const values = [[
-                userData.name,
                 userData.email,
+                this.normalizeRole(userData.role),
                 userData.password, // Gerçek uygulamada hash'lenmiş olmalı
-                userData.role,
+                userData.name,
                 userData.active ? 'true' : 'false'
             ]];
 
@@ -236,9 +278,10 @@ class GoogleSheetsAPI {
     async validateUser(email, password) {
         try {
             const users = await this.getUsers();
-            const user = users.find(u => u.email === email && u.password === password);
+            const normalizedEmail = (email || '').toString().trim().toLowerCase();
+            const user = users.find(u => (u.email || '').toString().trim().toLowerCase() === normalizedEmail);
             
-            if (user && user.active) {
+            if (user && user.active && await this.passwordMatches(user.password, password)) {
                 // Şifreyi güvenlik için kaldır
                 const { password: _, ...userWithoutPassword } = user;
                 return userWithoutPassword;
@@ -247,7 +290,7 @@ class GoogleSheetsAPI {
             return null;
         } catch (error) {
             console.error('Kullanıcı doğrulanamadı:', error);
-            return null;
+            throw error;
         }
     }
 

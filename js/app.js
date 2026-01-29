@@ -261,11 +261,11 @@ class KojenerasyonApp {
                 document.querySelector('.modal').remove();
                 this.showSuccess('Giriş başarılı');
             } else {
-                this.showError('Giriş başarısız');
+                this.showError(result.message || 'Giriş başarısız');
             }
         } catch (error) {
             console.error('Giriş hatası:', error);
-            this.showError('Giriş yapılamadı');
+            this.showError(error?.message || 'Giriş yapılamadı');
         }
     }
 

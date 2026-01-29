@@ -35,7 +35,7 @@ class AuthSystem {
             console.error('Giriş hatası:', error);
             return {
                 success: false,
-                message: 'Giriş yapılamadı'
+                message: error?.message || 'Giriş yapılamadı'
             };
         }
     }
@@ -144,13 +144,15 @@ class AuthSystem {
         }
 
         const roleHierarchy = {
-            'admin': 3,
-            'manager': 2,
-            'user': 1
+            'ADMIN': 4,
+            'OPERATOR': 3,
+            'USER': 2,
+            'VIEWER': 1
         };
 
-        const userRole = this.currentUser.role || 'user';
-        return roleHierarchy[userRole] >= roleHierarchy[requiredRole];
+        const userRole = (this.currentUser.role || 'VIEWER').toString().trim().toUpperCase();
+        const required = (requiredRole || 'VIEWER').toString().trim().toUpperCase();
+        return (roleHierarchy[userRole] || 0) >= (roleHierarchy[required] || 0);
     }
 
     // Şifre gücünü kontrol et
