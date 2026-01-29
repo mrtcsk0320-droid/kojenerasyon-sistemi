@@ -342,31 +342,43 @@ class GoogleSheetsAPI {
 
     // Veri yaz
     async writeData(range, values) {
-        const data = {
-            values: values
-        };
-
+        console.log('🔄 writeData çağrıldı - Range:', range);
+        console.log('📝 Veri sayısı:', values.length, 'satır');
+        
         try {
-            // Önce mevcut verileri oku
-            const existingData = await this.readData(range.replace('!A:H', '!A:H'));
-            console.log('Mevcut veriler:', existingData.length, 'satır');
+            // Önce API izinlerini test et
+            const testResult = await this.testApiPermissions();
+            console.log('🔐 API izin testi:', testResult);
             
-            // Yeni verileri mevcutlere ekle
-            const allData = [...existingData, ...values];
-            console.log('Toplam veri:', allData.length, 'satır');
-            
-            // Tüm verileri yaz
-            const result = await this.makeRequest(`values/${range}?valueInputOption=USER_ENTERED`, 'PUT', { values: allData });
-            return result;
-        } catch (error) {
-            console.error('Veri yazma hatası:', error);
-            
-            // Eğer yazma izni yoksa, appendData'yı dene
-            if (error.message.includes('401') || error.message.includes('403')) {
+            if (!testResult.canWrite) {
                 console.log('⚠️ Yazma izni yok, appendData deneniyor...');
-                return await this.appendData(range, values);
+                
+                // AppendData'yı dene - bu daha az izin gerektirir
+                try {
+                    // Sadece yeni verileri append et
+                    const newValues = values.slice(1); // Başlıkları atla
+                    if (newValues.length > 0) {
+                        return await this.appendData(range, newValues);
+                    } else {
+                        throw new Error('Yazılacak yeni veri yok');
+                    }
+                } catch (appendError) {
+                    console.log('❌ AppendData da çalışmıyor:', appendError.message);
+                    throw new Error('API_YAZMA_IZNI_YOK');
+                }
             }
             
+            // Yazma izni varsa normal writeData'yı yap
+            const data = {
+                values: values
+            };
+
+            const result = await this.makeRequest(`values/${range}?valueInputOption=USER_ENTERED`, 'PUT', data);
+            console.log('✅ writeData başarılı:', result);
+            return result;
+            
+        } catch (error) {
+            console.error('❌ writeData hatası:', error);
             throw error;
         }
     }
@@ -786,11 +798,26 @@ class GoogleSheetsAPI {
                 throw new Error('Kaydedilecek veri bulunamadı');
             }
 
-            // Mevcut ve yeni verileri birleştir
-            const allData = [...existingData, ...newRows];
-            console.log('Toplam veri:', allData.length, 'satır');
+            console.log('📝 Yeni veriler:', newRows.length, 'satır');
+            
+            // Başlıkları hazırla
+            const headers = [
+                ['Tarih', 'Saat', 'Aktif_Enerji_MWh', 'Reaktif_Enerji_kVARh', 'Aydem_Aktif_MWh', 'Aydem_Reaktif_kVAh', 'Kullanıcı', 'Kayıt_Zamanı']
+            ];
+            
+            // Eğer mevcut veri yoksa başlıkları ekle
+            let allData;
+            if (existingData.length === 0) {
+                allData = [...headers, ...newRows];
+                console.log('📋 Başlıklar ve veriler hazırlandı');
+            } else {
+                allData = [...existingData, ...newRows];
+                console.log('📋 Mevcut verilere yenileri eklendi');
+            }
+            
+            console.log('📊 Toplam veri:', allData.length, 'satır');
 
-            // Tüm verileri writeData ile yaz (append yerine)
+            // Tüm verileri writeData ile yaz
             const range = `'Saatlik_Enerji_Detay'!A:H`;
             const result = await this.writeData(range, allData);
             
