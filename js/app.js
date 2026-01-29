@@ -24,37 +24,6 @@ class KojenerasyonApp {
             });
         }
 
-        // Saatlik veri giriş formu
-        const hourlyDataForm = document.getElementById('hourly-data-form');
-        if (hourlyDataForm) {
-            // Submit olayını engelle
-            hourlyDataForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                
-                console.log('Form submit engellendi, kaydetme başlatılıyor...');
-                await this.saveHourlyDataEntry();
-                
-                return false;
-            });
-            
-            // Buton için ayrı event listener ekle
-            const submitBtn = hourlyDataForm.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                submitBtn.addEventListener('click', async (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
-                    
-                    console.log('Buton tıklandı, kaydetme başlatılıyor...');
-                    await this.saveHourlyDataEntry();
-                    
-                    return false;
-                });
-            }
-        }
-
         const loginForm = document.getElementById('login-form');
         if (loginForm) {
             loginForm.addEventListener('submit', (e) => {
@@ -132,8 +101,6 @@ class KojenerasyonApp {
 
     async loadDashboardData() {
         try {
-            console.log('📊 Dashboard verileri yükleniyor...');
-            
             // Google Sheets'ten motor verilerini çek
             const sheetData = await googleSheets.getMotorData();
             
@@ -179,94 +146,14 @@ class KojenerasyonApp {
                 this.updateSteamCards(mockSteamData);
             }
             
-            // LocalStorage'dan saatlik verileri oku ve dashboard'a yansıt
-            this.loadHourlyDataToDashboard();
-            
             // Admin ise düzenleme butonlarını göster
             this.checkAdminStatus();
             
-            console.log('✅ Dashboard verileri yüklendi');
         } catch (error) {
             console.error('Dashboard verileri yüklenemedi:', error);
-            // Hata durumunda LocalStorage verilerini göster
-            this.loadHourlyDataToDashboard();
-        }
-    }
-
-    // LocalStorage'daki saatlik verilerini dashboard'a yükle
-    loadHourlyDataToDashboard() {
-        try {
-            const hourlyData = JSON.parse(localStorage.getItem('hourlyData') || '[]');
-            console.log('📈 LocalStorage saatlik verileri:', hourlyData.length, 'kayıt');
-            
-            if (hourlyData.length > 0) {
-                // Bugünün verilerini hesapla
-                const today = new Date().toISOString().split('T')[0];
-                const todayData = hourlyData.filter(data => data.date === today);
-                
-                // Toplam verileri hesapla
-                const totalActivePower = hourlyData.reduce((sum, data) => sum + (data.totalActivePower || 0), 0);
-                const totalReactivePower = hourlyData.reduce((sum, data) => sum + (data.totalReactivePower || 0), 0);
-                
-                // Dashboard kartlarını güncelle
-                this.updateEnergyCards({
-                    totalActivePower: totalActivePower.toFixed(2),
-                    totalReactivePower: totalReactivePower.toFixed(2),
-                    todayActivePower: todayData.reduce((sum, data) => sum + (data.totalActivePower || 0), 0).toFixed(2),
-                    recordCount: hourlyData.length,
-                    lastUpdate: hourlyData.length > 0 ? hourlyData[hourlyData.length - 1].timestamp : 'Henüz kayıt yok'
-                });
-                
-                console.log('✅ Enerji kartları güncellendi:', {
-                    totalActivePower: totalActivePower.toFixed(2),
-                    totalReactivePower: totalReactivePower.toFixed(2),
-                    todayRecords: todayData.length
-                });
-            } else {
-                console.log('📝 Henüz kayıtlı veri yok');
-            }
-        } catch (error) {
-            console.error('LocalStorage verileri okunamadı:', error);
-        }
-    }
-
-    // Enerji kartlarını güncelle
-    updateEnergyCards(data) {
-        try {
-            // Toplam Aktif Güç kartı
-            const totalActiveElement = document.getElementById('total-active-power');
-            if (totalActiveElement) {
-                totalActiveElement.textContent = `${data.totalActivePower} MWh`;
-            }
-            
-            // Toplam Reaktif Güç kartı
-            const totalReactiveElement = document.getElementById('total-reactive-power');
-            if (totalReactiveElement) {
-                totalReactiveElement.textContent = `${data.totalReactivePower} kVAh`;
-            }
-            
-            // Bugünkü üretim kartı
-            const todayProductionElement = document.getElementById('today-production');
-            if (todayProductionElement) {
-                todayProductionElement.textContent = `${data.todayActivePower} MWh`;
-            }
-            
-            // Kayıt sayısı kartı
-            const recordCountElement = document.getElementById('record-count');
-            if (recordCountElement) {
-                recordCountElement.textContent = data.recordCount;
-            }
-            
-            // Son güncelleme kartı
-            const lastUpdateElement = document.getElementById('last-update');
-            if (lastUpdateElement) {
-                const updateDate = new Date(data.lastUpdate);
-                lastUpdateElement.textContent = updateDate.toLocaleString('tr-TR');
-            }
-            
-            console.log('✅ Enerji kartları güncellendi');
-        } catch (error) {
-            console.error('Enerji kartları güncellenemedi:', error);
+            this.showError('Dashboard verileri yüklenemedi');
+            // Hata durumunda mock verileri kullan
+            this.loadMockData();
         }
     }
 
@@ -304,7 +191,7 @@ class KojenerasyonApp {
         const isAdmin = userData.role === 'ADMIN' || userData.role === 'admin';
         
         // Geçici test için herkes admin olsun
-        const testMode = false; // Bunu false yapınca normal döner
+        const testMode = true; // Bunu false yapınca normal döner
         
         console.log('Kullanıcı rolü:', userData.role);
         console.log('Admin mi:', isAdmin);
@@ -365,154 +252,6 @@ class KojenerasyonApp {
         document.getElementById('steam-update').textContent = steamData.updateTime;
     }
 
-    async saveHourlyDataEntry() {
-        console.log('🔄 saveHourlyDataEntry başlatıldı...');
-        console.log('📍 Mevcut sayfa:', this.currentPage);
-        
-        const date = document.getElementById('hourly-date').value;
-        
-        if (!date) {
-            this.showError('Lütfen tarih seçin');
-            return false;
-        }
-
-        // Tüm saatlik verileri topla
-        const hourlyData = [];
-        const activePowerInputs = document.querySelectorAll('.active-power');
-        const reactivePowerInputs = document.querySelectorAll('.reactive-power');
-
-        for (let i = 0; i < 24; i++) {
-            const hour = i.toString().padStart(2, '0');
-            const activePower = parseFloat(activePowerInputs[i].value) || 0;
-            const reactivePower = parseFloat(reactivePowerInputs[i].value) || 0;
-
-            hourlyData.push({
-                hour: hour,
-                activePower: activePower,
-                reactivePower: reactivePower
-            });
-        }
-
-        // En az bir veri girilmiş mi kontrol et
-        const hasData = hourlyData.some(data => data.activePower > 0 || data.reactivePower > 0);
-        
-        if (!hasData) {
-            this.showError('Lütfen en az bir saat için veri girin');
-            return false;
-        }
-
-        const formData = {
-            date: date,
-            hourlyData: hourlyData,
-            timestamp: new Date().toISOString(),
-            totalActivePower: hourlyData.reduce((sum, data) => sum + data.activePower, 0),
-            totalReactivePower: hourlyData.reduce((sum, data) => sum + data.reactivePower, 0)
-        };
-
-        try {
-            console.log('💾 Veri kaydediliyor...');
-            
-            // Google Sheets'e kaydet (API anahtarı geçerliyse)
-            let sheetsSuccess = false;
-            if (typeof googleSheets !== 'undefined' && googleSheets.saveHourlyData) {
-                try {
-                    await googleSheets.saveHourlyData(formData);
-                    sheetsSuccess = true;
-                    this.showSuccess(`${date} tarihine ait saatlik veriler Google Sheets'e başarıyla kaydedildi`);
-                } catch (sheetsError) {
-                    if (sheetsError.message === 'API_YAZMA_IZNI_YOK') {
-                        console.warn('Google Sheets yazma izni yok, sadece LocalStorage kullanılıyor');
-                        this.showSuccess(`${date} tarihine ait saatlik veriler LocalStorage\'a kaydedildi (Google Sheets yazma izni gerekli)`);
-                    } else {
-                        console.warn('Google Sheets kaydı başarısız, LocalStorage kullanılıyor:', sheetsError.message);
-                        this.showSuccess(`${date} tarihine ait saatlik veriler başarıyla kaydedildi (LocalStorage)`);
-                    }
-                    sheetsSuccess = false;
-                }
-            }
-
-            if (!sheetsSuccess) {
-                this.showSuccess(`${date} tarihine ait saatlik veriler başarıyla kaydedildi (LocalStorage)`);
-            }
-
-            // LocalStorage'a her durumda kaydet (yedek olarak)
-            const existingData = JSON.parse(localStorage.getItem('hourlyData') || '[]');
-            existingData.push(formData);
-            localStorage.setItem('hourlyData', JSON.stringify(existingData));
-            
-            console.log('✅ Veri kaydedildi, form temizleniyor...');
-            
-            // Formu temizle ve sonraki tarihi ayarla
-            this.resetHourlyForm();
-            await this.setNextAvailableDate();
-            
-            console.log('🔍 Sayfa değişimi kontrolü - Mevcut sayfa:', this.currentPage);
-            
-            // Dashboard'u SADECE overview'daysa güncelle
-            if (this.currentPage === 'overview') {
-                console.log('📊 Dashboard güncelleniyor...');
-                this.loadDashboardData();
-            } else {
-                console.log('⚠️ Overview sayfasında değil, dashboard güncellenmiyor');
-            }
-
-            console.log('✅ saveHourlyDataEntry tamamlandı');
-            return true; // Başarılı olduğunu belirt
-
-        } catch (error) {
-            console.error('❌ Saatlik veri kaydedilemedi:', error);
-            this.showError('Saatlik veri kaydedilemedi');
-            return false;
-        }
-    }
-
-    async setNextAvailableDate() {
-        try {
-            // Google Sheets'ten sonraki uygun tarihi al (API anahtarı geçerliyse)
-            if (typeof googleSheets !== 'undefined' && googleSheets.getNextAvailableDate) {
-                try {
-                    const nextDate = await googleSheets.getNextAvailableDate();
-                    const dateInput = document.getElementById('hourly-date');
-                    if (dateInput && nextDate) {
-                        dateInput.value = nextDate;
-                        console.log('Sonraki uygun tarih ayarlandı:', nextDate);
-                    }
-                } catch (sheetsError) {
-                    console.warn('Google Sheets tarih kontrolü başarısız, bugün ayarlanıyor:', sheetsError.message);
-                    // Hata durumunda bugünü ayarla
-                    const dateInput = document.getElementById('hourly-date');
-                    if (dateInput) {
-                        dateInput.valueAsDate = new Date();
-                    }
-                }
-            } else {
-                // Google Sheets yoksa bugünü ayarla
-                const dateInput = document.getElementById('hourly-date');
-                if (dateInput) {
-                    dateInput.valueAsDate = new Date();
-                }
-            }
-        } catch (error) {
-            console.error('Tarih ayarlanamadı:', error);
-            // Son çare olarak bugünü ayarla
-            const dateInput = document.getElementById('hourly-date');
-            if (dateInput) {
-                dateInput.valueAsDate = new Date();
-            }
-        }
-    }
-
-    resetHourlyForm() {
-        const activePowerInputs = document.querySelectorAll('.active-power');
-        const reactivePowerInputs = document.querySelectorAll('.reactive-power');
-        
-        activePowerInputs.forEach(input => input.value = '');
-        reactivePowerInputs.forEach(input => input.value = '');
-        
-        // Sonraki uygun tarihi ayarla
-        this.setNextAvailableDate();
-    }
-
     async saveDataEntry() {
         const formData = {
             date: document.getElementById('date').value,
@@ -539,77 +278,6 @@ class KojenerasyonApp {
         const dateInput = document.getElementById('date');
         if (dateInput) {
             dateInput.valueAsDate = new Date();
-        }
-
-        // Saatlik form için sonraki uygun tarihi ayarla
-        this.setNextAvailableDate();
-        
-        // LocalStorage'daki verileri göster
-        this.showLocalStorageData();
-        
-        // Google Sheets API testini çalıştır
-        this.testGoogleSheetsAPI();
-    }
-
-    async testGoogleSheetsAPI() {
-        if (typeof googleSheets !== 'undefined') {
-            console.log('=== Google Sheets API Testi Başlatılıyor ===');
-            try {
-                const testResult = await googleSheets.testApiPermissions();
-                if (testResult.success) {
-                    console.log('✅ Google Sheets API çalışıyor');
-                    console.log('Spreadsheet sayfaları:', testResult.data.sheets?.map(s => s.properties.title));
-                    
-                    // Saatlik_Enerji_Detay sayfası var mı kontrol et
-                    const hasHourlyPage = testResult.data.sheets?.some(s => 
-                        s.properties.title === 'Saatlik_Enerji_Detay'
-                    );
-                    
-                    if (!hasHourlyPage) {
-                        console.warn('⚠️ "Saatlik_Enerji_Detay" sayfası bulunamadı!');
-                        console.log('Mevcut sayfalar:', testResult.data.sheets?.map(s => s.properties.title));
-                    } else {
-                        console.log('✅ "Saatlik_Enerji_Detay" sayfası bulundu');
-                    }
-                } else {
-                    console.error('❌ Google Sheets API hatası:', testResult.error);
-                }
-            } catch (error) {
-                console.error('❌ API testi başarısız:', error);
-            }
-            console.log('=== API Testi Bitti ===');
-        }
-    }
-
-    showLocalStorageData() {
-        const storedData = JSON.parse(localStorage.getItem('hourlyData') || '[]');
-        
-        if (storedData.length > 0) {
-            console.log('LocalStorage\'da kayıtlı veriler:', storedData);
-            
-            // En son 5 kaydı göster
-            const recentData = storedData.slice(-5).reverse();
-            let dataInfo = `LocalStorage'da ${storedData.length} kayıt var.\n\nSon kayıtlar:\n`;
-            
-            recentData.forEach((data, index) => {
-                dataInfo += `${index + 1}. ${data.date} - ${data.totalActivePower.toFixed(2)} MWh\n`;
-            });
-            
-            console.log(dataInfo);
-            
-            // Başarı mesajına bilgi ekle
-            setTimeout(() => {
-                const alertContainer = document.getElementById('alert-container');
-                if (alertContainer && alertContainer.lastElementChild) {
-                    const alert = alertContainer.lastElementChild;
-                    const infoDiv = document.createElement('div');
-                    infoDiv.style.cssText = 'font-size: 11px; margin-top: 8px; opacity: 0.8;';
-                    infoDiv.textContent = `LocalStorage: ${storedData.length} kayıt (Console'da detaylar)`;
-                    alert.appendChild(infoDiv);
-                }
-            }, 100);
-        } else {
-            console.log('LocalStorage\'ta kayıtlı veri bulunamadı');
         }
     }
 
@@ -846,10 +514,6 @@ function saveSettings() {
 function resetForm() {
     document.getElementById('data-form').reset();
     app.loadDataEntryForm();
-}
-
-function resetHourlyForm() {
-    app.resetHourlyForm();
 }
 
 function logout() {
