@@ -210,29 +210,53 @@ class KojenerasyonApp {
         if (token) {
             this.isAuthenticated = true;
             this.userData = JSON.parse(localStorage.getItem('userData'));
+            this.updateUserInfo();
         } else {
             // Giriş sayfasına yönlendir veya giriş modalını göster
             this.showLoginModal();
         }
     }
 
+    updateUserInfo() {
+        const userNameElement = document.getElementById('user-name');
+        if (userNameElement && this.userData) {
+            userNameElement.textContent = `${this.userData.name} (${this.userData.role})`;
+        }
+    }
+
     showLoginModal() {
         // Giriş modalı göster
         const modal = document.createElement('div');
-        modal.className = 'modal';
+        modal.className = 'login-modal';
         modal.innerHTML = `
-            <div class="modal-content">
-                <h2>Giriş Yap</h2>
-                <form id="login-form">
-                    <div class="form-group">
-                        <label>Email:</label>
-                        <input type="email" id="login-email" required>
+            <div class="login-container">
+                <div class="login-header">
+                    <h1>Kojenerasyon Takip Sistemi</h1>
+                    <p class="login-subtitle">Lütfen giriş yapınız</p>
+                </div>
+                <form id="login-form" class="login-form">
+                    <div class="input-group">
+                        <div class="input-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                <polyline points="22,6 12,13 2,6"></polyline>
+                            </svg>
+                        </div>
+                        <input type="email" id="login-email" placeholder="Email adresiniz" required>
                     </div>
-                    <div class="form-group">
-                        <label>Şifre:</label>
-                        <input type="password" id="login-password" required>
+                    <div class="input-group">
+                        <div class="input-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0110 0v4"></path>
+                            </svg>
+                        </div>
+                        <input type="password" id="login-password" placeholder="Şifreniz" required>
                     </div>
-                    <button type="submit">Giriş Yap</button>
+                    <button type="submit" class="login-btn">
+                        <span>Giriş Yap</span>
+                        <div class="login-spinner"></div>
+                    </button>
                 </form>
             </div>
         `;
@@ -248,6 +272,12 @@ class KojenerasyonApp {
     async handleLogin() {
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
+        const loginBtn = document.querySelector('.login-btn');
+        const spinner = document.querySelector('.login-spinner');
+        
+        // Loading durumunu göster
+        loginBtn.classList.add('loading');
+        spinner.style.display = 'block';
 
         try {
             const result = await auth.login(email, password);
@@ -258,7 +288,8 @@ class KojenerasyonApp {
                 localStorage.setItem('userData', JSON.stringify(result.user));
                 
                 // Modalı kaldır
-                document.querySelector('.modal').remove();
+                document.querySelector('.login-modal').remove();
+                this.updateUserInfo();
                 this.showSuccess('Giriş başarılı');
             } else {
                 this.showError(result.message || 'Giriş başarısız');
@@ -266,6 +297,10 @@ class KojenerasyonApp {
         } catch (error) {
             console.error('Giriş hatası:', error);
             this.showError(error?.message || 'Giriş yapılamadı');
+        } finally {
+            // Loading durumunu gizle
+            loginBtn.classList.remove('loading');
+            spinner.style.display = 'none';
         }
     }
 
