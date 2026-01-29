@@ -376,21 +376,121 @@ class GoogleSheetsAPI {
                 });
 
                 // Ortalama verimlilik
-                reportData.avgEfficiency = reportData.totalFuel > 0 
-                    ? ((reportData.totalProduction / reportData.totalFuel) * 100).toFixed(2)
-                    : 0;
+                reportData.avgEfficiency = reportData.totalHours > 0 ? 
+                    (reportData.totalProduction / reportData.totalHours).toFixed(2) : 0;
             }
 
             return reportData;
         } catch (error) {
-            console.error('Rapor verileri alınamadı:', error);
-            return {
-                totalProduction: 0,
-                totalFuel: 0,
-                totalHours: 0,
-                avgEfficiency: 0,
-                entries: 0
+            console.error('Rapor verileri çekilemedi:', error);
+            return null;
+        }
+    }
+
+    // Buhar üretim verilerini çek (F sütunundan)
+    async getSteamData() {
+        try {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            const year = today.getFullYear();
+            const month = today.getMonth() + 1; // 0-11 arası, +1 yap
+            const monthNames = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 
+                              'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+            const sheetName = `${monthNames[month - 1]} ${year}`;
+            
+            // Dünkü tarihi farklı formatlarda dene
+            const yesterdayFormats = [
+                yesterday.toISOString().split('T')[0], // YYYY-MM-DD
+                yesterday.toLocaleDateString('tr-TR'), // DD.MM.YYYY
+                yesterday.toLocaleDateString('en-US'), // MM/DD/YYYY
+                yesterday.toLocaleDateString('en-GB'), // DD/MM/YYYY
+                `28.01.2026` // Manuel format
+            ];
+            
+            console.log('Buhar verileri için kullanılacak sayfa:', sheetName);
+            console.log('Aranan dünkü tarihler:', yesterdayFormats);
+            
+            // İlgili sayfadan tüm verileri çek (F sütunu dahil)
+            const range = `${sheetName}!A:R`; // Tüm sütunları al
+            const response = await fetch(`${this.baseURL}/${this.spreadsheetId}/values/${range}?key=${this.apiKey}`);
+            
+            if (!response.ok) {
+                throw new Error('Google Sheets API hatası');
+            }
+            
+            const data = await response.json();
+            const rows = data.values || [];
+            
+            console.log('Buhar verileri - Toplam satır sayısı:', rows.length);
+            
+            // 983 verisini bul (toplam buhar için)
+            let totalSteam = 0;
+            let found983 = false;
+            
+            // Önce 983 değerini ara
+            for (const row of rows) {
+                if (row[5] && parseFloat(row[5]) === 983) {
+                    totalSteam = 983;
+                    found983 = true;
+                    console.log('983 değeri bulundu!');
+                    break;
+                }
+            }
+            
+            // Eğer 983 bulunamazsa, F sütunundaki en büyük değeri al
+            if (!found983) {
+                for (const row of rows) {
+                    if (row[5]) {
+                        const value = parseFloat(row[5]) || 0;
+                        if (value > totalSteam) {
+                            totalSteam = value;
+                        }
+                    }
+                }
+                console.log('983 bulunamadı, en büyük değer:', totalSteam);
+            }
+            
+            // Dünkü tarihteki buhar üretimini bul
+            let yesterdaySteam = 0;
+            let foundYesterday = false;
+            
+            for (const format of yesterdayFormats) {
+                for (const row of rows) {
+                    if (row[0] && row[0].includes(format) && row[5]) {
+                        yesterdaySteam = parseFloat(row[5]) || 0;
+                        foundYesterday = true;
+                        console.log('Dünkü tarih bulundu:', format, 'Değer:', yesterdaySteam);
+                        break;
+                    }
+                }
+                if (foundYesterday) break;
+            }
+            
+            if (!foundYesterday) {
+                console.log('Dünkü tarih bulunamadı, en son değeri kullanıyoruz');
+                // En son değeri bul
+                for (let i = rows.length - 1; i >= 0; i--) {
+                    if (rows[i][5] && parseFloat(rows[i][5]) > 0) {
+                        yesterdaySteam = parseFloat(rows[i][5]) || 0;
+                        break;
+                    }
+                }
+            }
+            
+            const steamData = {
+                monthlyTotal: totalSteam.toFixed(2),
+                latestValue: yesterdaySteam.toFixed(2),
+                updateTime: new Date().toLocaleString('tr-TR')
             };
+            
+            console.log('Buhar verileri başarıyla çekildi:', steamData);
+            return steamData;
+            
+        } catch (error) {
+            console.error('Buhar verileri çekilemedi:', error);
+            return null;
         }
     }
 

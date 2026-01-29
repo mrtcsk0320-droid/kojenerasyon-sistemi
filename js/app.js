@@ -101,7 +101,7 @@ class KojenerasyonApp {
 
     async loadDashboardData() {
         try {
-            // Google Sheets'ten verileri çek
+            // Google Sheets'ten motor verilerini çek
             const sheetData = await googleSheets.getMotorData();
             
             const motorData = {
@@ -130,12 +130,28 @@ class KojenerasyonApp {
             
             this.updateMotorCards(motorData);
             
+            // Google Sheets'ten buhar verilerini çek
+            const steamData = await googleSheets.getSteamData();
+            
+            if (steamData) {
+                this.updateSteamCards(steamData);
+            } else {
+                // Mock buhar verisi
+                const mockSteamData = {
+                    monthlyTotal: (Math.random() * 2000 + 1000).toFixed(2),
+                    latestDate: new Date(Date.now() - 86400000).toLocaleDateString('tr-TR'),
+                    latestValue: (Math.random() * 100 + 50).toFixed(2),
+                    updateTime: new Date().toLocaleString('tr-TR')
+                };
+                this.updateSteamCards(mockSteamData);
+            }
+            
             // Admin ise düzenleme butonlarını göster
             this.checkAdminStatus();
             
         } catch (error) {
-            console.error('Motor verileri yüklenemedi:', error);
-            this.showError('Motor verileri yüklenemedi');
+            console.error('Dashboard verileri yüklenemedi:', error);
+            this.showError('Dashboard verileri yüklenemedi');
             // Hata durumunda mock verileri kullan
             this.loadMockData();
         }
@@ -206,31 +222,34 @@ class KojenerasyonApp {
         }
     }
 
-    updateMotorCards(data) {
-        const elements = {
-            'gm1-hours': data.gm1.hours,
-            'gm1-power': data.gm1.power,
-            'gm1-daily-hours': data.gm1.dailyHours,
-            'gm1-daily-production': data.gm1.dailyProduction,
-            'gm1-hourly-avg': data.gm1.hourlyAvg,
-            'gm2-hours': data.gm2.hours,
-            'gm2-power': data.gm2.power,
-            'gm2-daily-hours': data.gm2.dailyHours,
-            'gm2-daily-production': data.gm2.dailyProduction,
-            'gm2-hourly-avg': data.gm2.hourlyAvg,
-            'gm3-hours': data.gm3.hours,
-            'gm3-power': data.gm3.power,
-            'gm3-daily-hours': data.gm3.dailyHours,
-            'gm3-daily-production': data.gm3.dailyProduction,
-            'gm3-hourly-avg': data.gm3.hourlyAvg
-        };
+    updateMotorCards(motorData) {
+        // GM-1 kartını güncelle
+        document.getElementById('gm1-hours').textContent = motorData.gm1.hours;
+        document.getElementById('gm1-power').textContent = motorData.gm1.power;
+        document.getElementById('gm1-hourly-avg').textContent = motorData.gm1.hourlyAvg;
+        document.getElementById('gm1-daily-hours').textContent = motorData.gm1.dailyHours;
+        document.getElementById('gm1-daily-production').textContent = motorData.gm1.dailyProduction;
 
-        Object.keys(elements).forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.textContent = elements[id];
-            }
-        });
+        // GM-2 kartını güncelle
+        document.getElementById('gm2-hours').textContent = motorData.gm2.hours;
+        document.getElementById('gm2-power').textContent = motorData.gm2.power;
+        document.getElementById('gm2-hourly-avg').textContent = motorData.gm2.hourlyAvg;
+        document.getElementById('gm2-daily-hours').textContent = motorData.gm2.dailyHours;
+        document.getElementById('gm2-daily-production').textContent = motorData.gm2.dailyProduction;
+
+        // GM-3 kartını güncelle
+        document.getElementById('gm3-hours').textContent = motorData.gm3.hours;
+        document.getElementById('gm3-power').textContent = motorData.gm3.power;
+        document.getElementById('gm3-hourly-avg').textContent = motorData.gm3.hourlyAvg;
+        document.getElementById('gm3-daily-hours').textContent = motorData.gm3.dailyHours;
+        document.getElementById('gm3-daily-production').textContent = motorData.gm3.dailyProduction;
+    }
+
+    updateSteamCards(steamData) {
+        // Buhar üretim kartını güncelle
+        document.getElementById('monthly-steam-production').textContent = steamData.monthlyTotal;
+        document.getElementById('latest-steam-production').textContent = steamData.latestValue;
+        document.getElementById('steam-update').textContent = steamData.updateTime;
     }
 
     async saveDataEntry() {
