@@ -1,225 +1,26 @@
 // Google Sheets API Entegrasyonu
 class GoogleSheetsAPI {
     constructor() {
-        this.apiKey = config.get('GOOGLE_API_KEY');
-        this.spreadsheetId = config.get('GOOGLE_SPREADSHEET_ID');
-        this.baseURL = 'https://sheets.googleapis.com/v4/spreadsheets';
-        
-        // OAuth 2.0 Configuration
-        this.clientId = config.get('GOOGLE_CLIENT_ID');
-        this.clientSecret = config.get('GOOGLE_CLIENT_SECRET');
-        this.redirectUri = config.get('GOOGLE_REDIRECT_URI');
-        this.accessToken = null;
-        this.refreshToken = null;
+    this.apiKey = 'AIzaSyCcF6wYrhr2i41qaBti9Rgaas1a5XcWnBk'; // Senin API key'in
+    this.spreadsheetId = '1ulhuSPzsICrbNX0jAIqQcFeWcQBXifSAXWwJzfmmyCc'; // Senin Sheets ID'n
+    this.baseURL = 'https://sheets.googleapis.com/v4/spreadsheets';
+    
+    // Test modu kapatıldı - API anahtarı kullanılacak
+    this.testMode = false;
+}
+
+    // API anahtarını ayarla
+    setApiKey(apiKey) {
+        this.apiKey = apiKey;
     }
 
-    // OAuth 2.0 ile Google Girişi
-    initiateGoogleLogin() {
-        const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?` +
-            `client_id=${this.clientId}&` +
-            `redirect_uri=${encodeURIComponent(this.redirectUri)}&` +
-            `response_type=code&` +
-            `scope=https://www.googleapis.com/auth/spreadsheets&` +
-            `access_type=offline&` +
-            `prompt=consent`;
-        
-        // Popup aç
-        const popup = window.open(authUrl, 'google-auth', 'width=500,height=600');
-        
-        // Popup'dan gelen mesajı dinle
-        const messageHandler = (event) => {
-            if (event.origin !== window.location.origin) return;
-            
-            if (event.data.type === 'google-auth-success') {
-                popup.close();
-                this.exchangeCodeForTokens(event.data.code);
-                window.removeEventListener('message', messageHandler);
-            }
-        };
-        
-        window.addEventListener('message', messageHandler);
+    // Spreadsheet ID'yi ayarla
+    setSpreadsheetId(spreadsheetId) {
+        this.spreadsheetId = spreadsheetId;
     }
 
-    // Authorization code'u access token ile değiştir
-    async exchangeCodeForTokens(code) {
-        try {
-            const response = await fetch('https://oauth2.googleapis.com/token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    client_id: this.clientId,
-                    client_secret: this.clientSecret,
-                    code: code,
-                    grant_type: 'authorization_code',
-                    redirect_uri: this.redirectUri,
-                }),
-            });
-
-            const tokens = await response.json();
-            
-            if (tokens.access_token) {
-                this.accessToken = tokens.access_token;
-                this.refreshToken = tokens.refresh_token;
-                
-                // Local storage'a kaydet
-                localStorage.setItem('googleAccessToken', this.accessToken);
-                localStorage.setItem('googleRefreshToken', this.refreshToken);
-                
-                console.log('OAuth 2.0 başarılı! Access token alındı.');
-                return true;
-            }
-            
-            throw new Error('Token alınamadı');
-        } catch (error) {
-            console.error('Token exchange hatası:', error);
-            throw error;
-        }
-    }
-
-    // Access token'ı yenile
-    async refreshAccessToken() {
-        try {
-            const response = await fetch('https://oauth2.googleapis.com/token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    client_id: this.clientId,
-                    client_secret: this.clientSecret,
-                    refresh_token: this.refreshToken,
-                    grant_type: 'refresh_token',
-                }),
-            });
-
-            const tokens = await response.json();
-            
-            if (tokens.access_token) {
-                this.accessToken = tokens.access_token;
-                localStorage.setItem('googleAccessToken', this.accessToken);
-                return true;
-            }
-            
-            throw new Error('Token yenilenemedi');
-        } catch (error) {
-            console.error('Token refresh hatası:', error);
-            throw error;
-        }
-    }
-
-    // OAuth ile API isteği gönder
-    async makeOAuthRequest(endpoint, method = 'GET', data = null) {
-        if (!this.accessToken) {
-            // Local storage'dan token'ı yükle
-            this.accessToken = localStorage.getItem('googleAccessToken');
-            this.refreshToken = localStorage.getItem('googleRefreshToken');
-        }
-
-        if (!this.accessToken) {
-            throw new Error('OAuth 2.0 yetkilendirmesi gerekli. Lütfen Google ile giriş yapın.');
-        }
-
-        const url = `${this.baseURL}/${this.spreadsheetId}/${endpoint}`;
-        
-        const options = {
-            method: method,
-            headers: {
-                'Authorization': `Bearer ${this.accessToken}`,
-                'Content-Type': 'application/json',
-            }
-        };
-
-        if (data && method !== 'GET') {
-            options.body = JSON.stringify(data);
-        }
-
-        try {
-            const response = await fetch(url, options);
-            
-            if (response.status === 401 && this.refreshToken) {
-                // Token süresi dolmuşsa yenile
-                await this.refreshAccessToken();
-                options.headers.Authorization = `Bearer ${this.accessToken}`;
-                const retryResponse = await fetch(url, options);
-                
-                if (!retryResponse.ok) {
-                    throw new Error(`HTTP error! status: ${retryResponse.status}`);
-                }
-                
-                return await retryResponse.json();
-            }
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            return await response.json();
-        } catch (error) {
-            console.error('Google Sheets OAuth API hatası:', error);
-            throw error;
-        }
-    }
-
-    // OAuth ile veri yazma
-    async writeData(range, values) {
-        try {
-            const data = {
-                range: range,
-                values: values
-            };
-            
-            const result = await this.makeOAuthRequest(`values/${range}:append?valueInputOption=USER_ENTERED`, 'POST', data);
-            return result;
-        } catch (error) {
-            console.error('Veri yazma hatası:', error);
-            throw error;
-        }
-    }
-
-    // OAuth ile veri güncelleme
-    async updateData(range, values) {
-        try {
-            const data = {
-                range: range,
-                values: values
-            };
-            
-            const result = await this.makeOAuthRequest(`values/${range}?valueInputOption=USER_ENTERED`, 'PUT', data);
-            return result;
-        } catch (error) {
-            console.error('Veri güncelleme hatası:', error);
-            throw error;
-        }
-    }
-
-    // OAuth durumunu kontrol et
-    checkOAuthStatus() {
-        const accessToken = localStorage.getItem('googleAccessToken');
-        const statusElement = document.getElementById('oauth-status');
-        
-        if (statusElement) {
-            if (accessToken) {
-                statusElement.innerHTML = '<span class="status-success">✅ Google Sheets ile bağlı</span>';
-                statusElement.className = 'oauth-status status-success';
-            } else {
-                statusElement.innerHTML = '<span class="status-warning">⚠️ Google Sheets yetkilendirmesi gerekli</span>';
-                statusElement.className = 'oauth-status status-warning';
-            }
-        }
-        
-        return !!accessToken;
-    }
-
-    // OAuth çıkış yap
-    logoutOAuth() {
-        localStorage.removeItem('googleAccessToken');
-        localStorage.removeItem('googleRefreshToken');
-        this.accessToken = null;
-        this.refreshToken = null;
-        this.checkOAuthStatus();
-        console.log('OAuth çıkış yapıldı');
+    normalizeRole(role) {
+        return (role || '').toString().trim().toUpperCase();
     }
 
     parseActive(value) {
@@ -369,22 +170,19 @@ class GoogleSheetsAPI {
                 totalPower: (Math.random() * 50 + 10).toFixed(2),
                 totalHours: (Math.random() * 1000 + 500).toFixed(1),
                 dailyHours: (Math.random() * 24).toFixed(1),
-                dailyProduction: (Math.random() * 100 + 20).toFixed(2),
-                hourlyAvg: (Math.random() * 10 + 2).toFixed(2)
+                dailyProduction: (Math.random() * 100 + 20).toFixed(2)
             },
             gm2: {
                 totalPower: (Math.random() * 50 + 10).toFixed(2),
                 totalHours: (Math.random() * 1000 + 500).toFixed(1),
                 dailyHours: (Math.random() * 24).toFixed(1),
-                dailyProduction: (Math.random() * 100 + 20).toFixed(2),
-                hourlyAvg: (Math.random() * 10 + 2).toFixed(2)
+                dailyProduction: (Math.random() * 100 + 20).toFixed(2)
             },
             gm3: {
                 totalPower: (Math.random() * 50 + 10).toFixed(2),
                 totalHours: (Math.random() * 1000 + 500).toFixed(1),
                 dailyHours: (Math.random() * 24).toFixed(1),
-                dailyProduction: (Math.random() * 100 + 20).toFixed(2),
-                hourlyAvg: (Math.random() * 10 + 2).toFixed(2)
+                dailyProduction: (Math.random() * 100 + 20).toFixed(2)
             }
         };
     }
@@ -424,8 +222,9 @@ class GoogleSheetsAPI {
     // Genel API isteği gönder
     async makeRequest(endpoint, method = 'GET', data = null) {
         if (!this.apiKey || this.apiKey === 'YOUR_API_KEY_HERE' || !this.spreadsheetId || this.spreadsheetId === 'YOUR_SPREADSHEET_ID_HERE') {
-            throw new Error('Google Sheets yapılandırması eksik. js/google-sheets.js içinde apiKey ve spreadsheetId değerlerini girin (constructor satırları).');
+            throw new Error('Google Sheets yapılandırması eksik. Lütfen geçerli bir API anahtarı ve Spreadsheet ID girin.\n\nAPI anahtarı almak için:\n1. Google Cloud Console\'da proje oluşturun\n2. Google Sheets API\'yi etkinleştirin\n3. API anahtarı oluşturun\n4. js/google-sheets.js dosyasında apiKey ve spreadsheetId değerlerini güncelleyin');
         }
+        
         const url = `${this.baseURL}/${this.spreadsheetId}/${endpoint}?key=${this.apiKey}`;
         
         const options = {
@@ -440,14 +239,93 @@ class GoogleSheetsAPI {
         }
 
         try {
+            console.log('🔄 API isteği gönderiliyor:', method, url);
             const response = await fetch(url, options);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            
+            console.log('📡 API yanıtı:', response.status, response.statusText);
+            
+            // 401 hatası için özel mesaj
+            if (response.status === 401) {
+                console.log('🔍 API anahtarı test ediliyor...');
+                // API anahtarını test et
+                const testResult = await this.testApiKey();
+                
+                if (testResult.issue === 'IP_REFERER_RESTRICTION') {
+                    throw new Error('API anahtarı IP veya HTTP Referer kısıtlamasına sahip!\n\nÇözümler:\n1. Google Cloud Console\'dan API anahtarını düzenleyin\n2. "Uygulama kısıtlamaları" bölümünden IP adresi ve HTTP referer kısıtlamalarını kaldırın\n3. Veya localhost IP adresini (127.0.0.1) ekleyin\n\nGeçici çözüm: Veriler LocalStorage\'a kaydediliyor.');
+                } else if (testResult.valid && !testResult.hasWritePermission) {
+                    throw new Error('API anahtarı geçerli ama yazma izni yok!\n\nÇözümler:\n1. Google Cloud Console\'dan API anahtarını düzenleyin\n2. Google Sheets API yazma izinlerini ekleyin\n3. Spreadsheet\'i herkese açık yapın\n\nGeçici çözüm: Veriler LocalStorage\'a kaydediliyor.');
+                } else {
+                    throw new Error('API anahtarı geçersiz. Lütfen yeni bir API anahtarı oluşturun.\n\nGoogle Cloud Console\'da:\n1. Yeni API anahtarı oluşturun\n2. Google Sheets API\'yi etkinleştirin\n3. IP kısıtlamalarını kaldırın\n4. Bu anahtarı js/google-sheets.js dosyasına yapıştırın');
+                }
             }
-            return await response.json();
+            
+            // 403 hatası için özel mesaj  
+            if (response.status === 403) {
+                throw new Error('API erişim izni yok. Çözümler:\n1. Spreadsheet\'i "Herkesle paylaş" -> "İzleyici" yapın\n2. API anahtarına Google Sheets API yazma izni verin\n3. Spreadsheet ID\'nin doğru olduğundan emin olun\n4. "Saatlik_Enerji_Detay" sayfasının varlığını kontrol edin');
+            }
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('❌ API Hata Detayı:', errorText);
+                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}\nDetay: ${errorText}`);
+            }
+            
+            const result = await response.json();
+            console.log('✅ API başarılı:', result);
+            return result;
         } catch (error) {
             console.error('Google Sheets API hatası:', error);
             throw error;
+        }
+    }
+
+    // API anahtarını test et
+    async testApiKey() {
+        try {
+            console.log('🔍 API anahtarı test ediliyor...');
+            
+            // 1. Drive API test (genel erişim)
+            const driveUrl = `https://www.googleapis.com/drive/v3/files?key=${this.apiKey}`;
+            const driveResponse = await fetch(driveUrl);
+            console.log('Drive API:', driveResponse.status);
+            
+            // 2. Sheets API test (okuma)
+            const sheetsUrl = `${this.baseURL}/${this.spreadsheetId}?key=${this.apiKey}`;
+            const sheetsResponse = await fetch(sheetsUrl);
+            console.log('Sheets API (okuma):', sheetsResponse.status);
+            
+            // 3. Sheets API test (yazma denemesi)
+            const writeUrl = `${this.baseURL}/${this.spreadsheetId}/values/Sheet1!A1:B1?valueInputOption=USER_ENTERED&key=${this.apiKey}`;
+            const writeResponse = await fetch(writeUrl, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ values: [['Test', 'Data']] })
+            });
+            console.log('Sheets API (yazma):', writeResponse.status);
+            
+            if (writeResponse.status === 403) {
+                const errorText = await writeResponse.text();
+                console.log('Yazma hatası detayı:', errorText);
+                
+                if (errorText.includes('origin') || errorText.includes('referer')) {
+                    return { 
+                        valid: true, 
+                        hasReadPermission: true,
+                        hasWritePermission: false,
+                        issue: 'IP_REFERER_RESTRICTION',
+                        message: 'API anahtarı IP veya HTTP Referer kısıtlamasına sahip. Localhost\'tan erişim engelleniyor.'
+                    };
+                }
+            }
+            
+            return { 
+                valid: driveResponse.status === 200,
+                hasReadPermission: sheetsResponse.status === 200,
+                hasWritePermission: writeResponse.status === 200
+            };
+        } catch (error) {
+            console.error('API test hatası:', error);
+            return { valid: false, error: error.message };
         }
     }
 
@@ -462,7 +340,177 @@ class GoogleSheetsAPI {
         }
     }
 
+    // Veri yaz
+    async writeData(range, values) {
+        console.log('🔄 writeData çağrıldı - Range:', range);
+        console.log('📝 Veri sayısı:', values.length, 'satır');
+        
+        try {
+            // Önce API izinlerini test et
+            const testResult = await this.testApiPermissions();
+            console.log('🔐 API izin testi:', testResult);
+            
+            if (!testResult.canWrite) {
+                console.log('⚠️ Yazma izni yok, appendData deneniyor...');
+                
+                // AppendData'yı dene - bu daha az izin gerektirir
+                try {
+                    // Sadece yeni verileri append et
+                    const newValues = values.slice(1); // Başlıkları atla
+                    if (newValues.length > 0) {
+                        return await this.appendData(range, newValues);
+                    } else {
+                        throw new Error('Yazılacak yeni veri yok');
+                    }
+                } catch (appendError) {
+                    console.log('❌ AppendData da çalışmıyor:', appendError.message);
+                    throw new Error('API_YAZMA_IZNI_YOK');
+                }
+            }
+            
+            // Yazma izni varsa normal writeData'yı yap
+            const data = {
+                values: values
+            };
 
+            const result = await this.makeRequest(`values/${range}?valueInputOption=USER_ENTERED`, 'PUT', data);
+            console.log('✅ writeData başarılı:', result);
+            return result;
+            
+        } catch (error) {
+            console.error('❌ writeData hatası:', error);
+            throw error;
+        }
+    }
+
+    // Veri ekle
+    async appendData(range, values) {
+        const data = {
+            values: values
+        };
+
+        try {
+            console.log('📝 Append işlemi başlatılıyor...');
+            console.log('Range:', range);
+            console.log('Values:', values);
+            
+            const endpoint = `values/${range}:append?valueInputOption=USER_ENTERED`;
+            const result = await this.makeRequest(endpoint, 'POST', data);
+            
+            console.log('✅ Append başarılı:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Veri ekleme hatası:', error);
+            
+            // Eğer append da çalışmazsa, son çare olarak LocalStorage'a kaydet
+            if (error.message.includes('401') || error.message.includes('403')) {
+                console.log('⚠️ Append de çalışmıyor, LocalStorage kullanılıyor...');
+                throw new Error('API_YAZMA_IZNI_YOK');
+            }
+            
+            throw error;
+        }
+    }
+
+    // Dashboard verilerini getir
+    async getDashboardData() {
+        try {
+            // Son günün verilerini al
+            const today = new Date().toISOString().split('T')[0];
+            const dataRange = `'VeriGiris'!A2:D1000`; // VeriGiris sayfasından verileri al
+            
+            const values = await this.readData(dataRange);
+            
+            // Verileri işle
+            const dashboardData = {
+                dailyProduction: 0,
+                efficiency: 0,
+                activeUsers: 0,
+                totalEntries: values.length
+            };
+
+            if (values.length > 0) {
+                // Son günün verilerini bul
+                const todayData = values.filter(row => row[0] === today);
+                
+                if (todayData.length > 0) {
+                    // Günlük üretim (toplam)
+                    dashboardData.dailyProduction = todayData.reduce((sum, row) => sum + parseFloat(row[1] || 0), 0);
+                    
+                    // Verimlilik hesapla (üretim / yakıt * 100)
+                    const totalProduction = dashboardData.dailyProduction;
+                    const totalFuel = todayData.reduce((sum, row) => sum + parseFloat(row[2] || 0), 0);
+                    dashboardData.efficiency = totalFuel > 0 ? ((totalProduction / totalFuel) * 100).toFixed(2) : 0;
+                }
+            }
+
+            // Aktif kullanıcı sayısını al
+            const users = await this.getUsers();
+            dashboardData.activeUsers = users.filter(user => user.active).length;
+
+            return dashboardData;
+        } catch (error) {
+            console.error('Dashboard verileri alınamadı:', error);
+            return {
+                dailyProduction: 0,
+                efficiency: 0,
+                activeUsers: 0,
+                totalEntries: 0
+            };
+        }
+    }
+
+    // Veri girişi kaydet
+    async saveDataEntry(formData) {
+        try {
+            const range = `'VeriGiris'!A:D`; // Tarih, Üretim, Yakıt, Saat sütunları
+            const values = [[
+                formData.date,
+                formData.production.toString(),
+                formData.fuel.toString(),
+                formData.hours.toString()
+            ]];
+
+            const result = await this.appendData(range, values);
+            return result;
+        } catch (error) {
+            console.error('Veri girişi kaydedilemedi:', error);
+            throw error;
+        }
+    }
+
+    // Rapor verilerini getir
+    async getReportData() {
+        try {
+            const dataRange = `'VeriGiris'!A2:D1000`;
+            const values = await this.readData(dataRange);
+
+            const reportData = {
+                totalProduction: 0,
+                totalFuel: 0,
+                totalHours: 0,
+                avgEfficiency: 0,
+                entries: values.length
+            };
+
+            if (values.length > 0) {
+                values.forEach(row => {
+                    reportData.totalProduction += parseFloat(row[1] || 0);
+                    reportData.totalFuel += parseFloat(row[2] || 0);
+                    reportData.totalHours += parseFloat(row[3] || 0);
+                });
+
+                // Ortalama verimlilik
+                reportData.avgEfficiency = reportData.totalHours > 0 ? 
+                    (reportData.totalProduction / reportData.totalHours).toFixed(2) : 0;
+            }
+
+            return reportData;
+        } catch (error) {
+            console.error('Rapor verileri çekilemedi:', error);
+            return null;
+        }
+    }
 
     // Buhar üretim verilerini çek (F sütunundan)
     async getSteamData() {
@@ -481,6 +529,9 @@ class GoogleSheetsAPI {
             const yesterdayFormats = [
                 yesterday.toISOString().split('T')[0], // YYYY-MM-DD
                 yesterday.toLocaleDateString('tr-TR'), // DD.MM.YYYY
+                yesterday.toLocaleDateString('en-US'), // MM/DD/YYYY
+                yesterday.toLocaleDateString('en-GB'), // DD/MM/YYYY
+                `28.01.2026` // Manuel format
             ];
             
             console.log('Buhar verileri için kullanılacak sayfa:', sheetName);
@@ -593,6 +644,25 @@ class GoogleSheetsAPI {
         }
     }
 
+    // Yeni kullanıcı ekle
+    async addUser(userData) {
+        try {
+            const range = `'Kullanıcılar'!A:E`;
+            const values = [[
+                userData.email,
+                this.normalizeRole(userData.role),
+                userData.password, // Gerçek uygulamada hash'lenmiş olmalı
+                userData.name,
+                userData.active ? 'true' : 'false'
+            ]];
+
+            const result = await this.appendData(range, values);
+            return result;
+        } catch (error) {
+            console.error('Kullanıcı eklenemedi:', error);
+            throw error;
+        }
+    }
 
     // Kullanıcı doğrula
     async validateUser(email, password) {
@@ -624,7 +694,242 @@ class GoogleSheetsAPI {
         }
     }
 
+    // Ayarları getir
+    async getSettings() {
+        try {
+            const settingsRange = `'Ayarlar'!A2:B100`;
+            const values = await this.readData(settingsRange);
 
+            const settings = {};
+            values.forEach(row => {
+                if (row[0] && row[1]) {
+                    settings[row[0]] = row[1];
+                }
+            });
+
+            return settings;
+        } catch (error) {
+            console.error('Ayarlar alınamadı:', error);
+            return {};
+        }
+    }
+
+    // API izinlerini test et
+    async testApiPermissions() {
+        try {
+            console.log('API izinleri test ediliyor...');
+            
+            // Spreadsheet bilgilerini al (okuma izni kontrolü)
+            const testUrl = `${this.baseURL}/${this.spreadsheetId}?key=${this.apiKey}`;
+            console.log('Test URL:', testUrl);
+            
+            const response = await fetch(testUrl);
+            console.log('Response status:', response.status);
+            
+            if (response.status === 200) {
+                const data = await response.json();
+                console.log('✅ Google Sheets API çalışıyor');
+                console.log('Spreadsheet sayfaları:', data.sheets?.map(s => s.properties.title));
+                
+                // Saatlik_Enerji_Detay sayfası var mı kontrol et
+                const hasHourlyPage = data.sheets?.some(s => 
+                    s.properties.title === 'Saatlik_Enerji_Detay'
+                );
+                
+                if (!hasHourlyPage) {
+                    console.warn('⚠️ "Saatlik_Enerji_Detay" sayfası bulunamadı!');
+                    console.log('Mevcut sayfalar:', data.sheets?.map(s => s.properties.title));
+                    console.log('💡 Çözüm: Google Sheets\'te "Saatlik_Enerji_Detay" adında yeni sayfa oluşturun');
+                } else {
+                    console.log('✅ "Saatlik_Enerji_Detay" sayfası bulundu');
+                }
+                
+                return { success: true, data };
+            } else {
+                const errorText = await response.text();
+                console.error('❌ API test hatası:', response.status, errorText);
+                return { success: false, error: `HTTP ${response.status}: ${errorText}` };
+            }
+        } catch (error) {
+            console.error('❌ API test exception:', error);
+            return { success: false, error: error.message };
+        }
+    }
+
+    // Saatlik enerji verilerini kaydet
+    async saveHourlyData(formData) {
+        try {
+            console.log('Google Sheets kayıt başlatılıyor...');
+            console.log('API Key:', this.apiKey ? 'Mevcut' : 'Yok');
+            console.log('Spreadsheet ID:', this.spreadsheetId);
+            
+            // Önce sayfanın varlığını kontrol et
+            const pageInfo = await this.checkSheetExists('Saatlik_Enerji_Detay');
+            if (!pageInfo.exists) {
+                throw new Error('"Saatlik_Enerji_Detay" sayfası bulunamadı! Mevcut sayfalar: ' + pageInfo.availableSheets.join(', '));
+            }
+            
+            // Önce mevcut verileri oku
+            const existingData = await this.readExistingHourlyData();
+            console.log('Mevcut veriler okundu:', existingData.length, 'satır');
+            
+            // Kullanıcı bilgisini al
+            const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+            const userName = userData.name || 'Bilinmeyen Kullanıcı';
+            
+            // Yeni verileri hazırla
+            const newRows = [];
+            formData.hourlyData.forEach(hourData => {
+                if (hourData.activePower > 0 || hourData.reactivePower > 0) {
+                    newRows.push([
+                        formData.date,                    // A: TARİH
+                        hourData.hour,                     // B: SAAT
+                        hourData.activePower.toString(),   // C: AKTİF
+                        hourData.reactivePower.toString(), // D: REAKTİF
+                        '',                               // E: BOŞ
+                        '',                               // F: BOŞ
+                        userName,                          // G: KULLANICI
+                        new Date().toLocaleString('tr-TR') // H: KAYIT ZAMANI
+                    ]);
+                }
+            });
+
+            if (newRows.length === 0) {
+                throw new Error('Kaydedilecek veri bulunamadı');
+            }
+
+            console.log('📝 Yeni veriler:', newRows.length, 'satır');
+            
+            // Başlıkları hazırla
+            const headers = [
+                ['Tarih', 'Saat', 'Aktif_Enerji_MWh', 'Reaktif_Enerji_kVARh', 'Aydem_Aktif_MWh', 'Aydem_Reaktif_kVAh', 'Kullanıcı', 'Kayıt_Zamanı']
+            ];
+            
+            // Eğer mevcut veri yoksa başlıkları ekle
+            let allData;
+            if (existingData.length === 0) {
+                allData = [...headers, ...newRows];
+                console.log('📋 Başlıklar ve veriler hazırlandı');
+            } else {
+                allData = [...existingData, ...newRows];
+                console.log('📋 Mevcut verilere yenileri eklendi');
+            }
+            
+            console.log('📊 Toplam veri:', allData.length, 'satır');
+
+            // Tüm verileri writeData ile yaz
+            const range = `'Saatlik_Enerji_Detay'!A:H`;
+            const result = await this.writeData(range, allData);
+            
+            console.log('✅ Google Sheets kayıt başarılı:', result);
+            return result;
+        } catch (error) {
+            console.error('❌ Google Sheets kayıt hatası detayı:', error);
+            console.error('Hata mesajı:', error.message);
+            throw error;
+        }
+    }
+
+    // Mevcut saatlik verilerini oku
+    async readExistingHourlyData() {
+        try {
+            const range = `'Saatlik_Enerji_Detay'!A:H`;
+            const result = await this.readData(range);
+            return result || [];
+        } catch (error) {
+            console.warn('Mevcut veriler okunamadı, boş liste döndürülüyor:', error.message);
+            return [];
+        }
+    }
+
+    // Sayfanın varlığını kontrol et
+    async checkSheetExists(sheetName) {
+        try {
+            const testUrl = `${this.baseURL}/${this.spreadsheetId}?key=${this.apiKey}`;
+            const response = await fetch(testUrl);
+            
+            if (response.status === 200) {
+                const data = await response.json();
+                const sheets = data.sheets || [];
+                const sheetTitles = sheets.map(s => s.properties.title);
+                
+                return {
+                    exists: sheetTitles.includes(sheetName),
+                    availableSheets: sheetTitles
+                };
+            } else {
+                return {
+                    exists: false,
+                    availableSheets: []
+                };
+            }
+        } catch (error) {
+            return {
+                exists: false,
+                availableSheets: []
+            };
+        }
+    }
+
+    // Kayıtlı tarihleri kontrol et ve sonraki boş tarihi bul
+    async getNextAvailableDate() {
+        try {
+            const range = `'Saatlik_Enerji_Detay'!A:A`; // Sadece tarih sütunu
+            const values = await this.readData(range);
+            
+            // Tüm tarihleri topla
+            const dates = values.map(row => row[0]).filter(date => date && date.trim());
+            
+            // Bugünün tarihini al
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Eğer bugün kayıt yoksa bugünü döndür
+            if (!dates.includes(today)) {
+                return today;
+            }
+            
+            // Sonraki günleri kontrol et
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            
+            if (!dates.includes(tomorrowStr)) {
+                return tomorrowStr;
+            }
+            
+            // İleri günler için kontrol et (maksimum 30 gün)
+            for (let i = 2; i <= 30; i++) {
+                const futureDate = new Date();
+                futureDate.setDate(futureDate.getDate() + i);
+                const futureDateStr = futureDate.toISOString().split('T')[0];
+                
+                if (!dates.includes(futureDateStr)) {
+                    return futureDateStr;
+                }
+            }
+            
+            // Bulunamazsa bugünü döndür
+            return today;
+        } catch (error) {
+            console.error('Tarih kontrolü yapılamadı:', error);
+            // Hata durumunda bugünü döndür
+            return new Date().toISOString().split('T')[0];
+        }
+    }
+
+    // Ayarları güncelle
+    async updateSettings(settings) {
+        try {
+            const range = `'Ayarlar'!A:B`;
+            const values = Object.entries(settings).map(([key, value]) => [key, value]);
+
+            const result = await this.writeData(range, values);
+            return result;
+        } catch (error) {
+            console.error('Ayarlar güncellenemedi:', error);
+            throw error;
+        }
+    }
 }
 
 // Google Sheets API örneği oluştur
@@ -643,26 +948,4 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedSpreadsheetId) {
         googleSheets.setSpreadsheetId(savedSpreadsheetId);
     }
-    
-    // OAuth message listener - callback'den gelen mesajları dinle
-    window.addEventListener('message', async (event) => {
-        if (event.data.type === 'google-auth-success') {
-            try {
-                const success = await googleSheets.exchangeCodeForTokens(event.data.code);
-                if (success) {
-                    googleSheets.checkOAuthStatus();
-                    console.log('✅ Google ile giriş başarılı!');
-                }
-            } catch (error) {
-                console.error('❌ OAuth token exchange hatası:', error);
-            }
-        }
-    });
-    
-    // OAuth durumunu kontrol et
-    googleSheets.checkOAuthStatus();
-    
-    // OAuth token'ları yükle
-    googleSheets.accessToken = localStorage.getItem('googleAccessToken');
-    googleSheets.refreshToken = localStorage.getItem('googleRefreshToken');
 });
