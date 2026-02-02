@@ -1,131 +1,100 @@
-# ⚡ Kojenerasyon Takip Sistemi
+# Kojenerasyon Takip Sistemi
 
-Modern, glassmorphism tasarımlı, web tabanlı kojenerasyon takip sistemi. Koyu tema ve cam efektleri ile şık bir kullanıcı deneyimi sunar.
+Web tabanlı, mobil uyumlu, Google Sheets entegre tam kapsamlı kojenerasyon takip sistemi.
 
-## ✨ Özellikler
+## Özellikler
 
-- 🎨 **Modern Glassmorphism Tasarım** - Koyu tema ve cam efektleri
-- 📱 **Tam Responsive** - Mobil uyumlu tasarım
-- 🔐 **Kullanıcı Kimlik Doğrulama** - Güvenli giriş sistemi
-- 📊 **Gerçek Zamanlı Veri Takibi** - Anlık veri izleme
-- 📈 **Raporlama ve Analiz** - Detaylı raporlar
-- 🎯 **İstatistik Paneli** - Görsel veri gösterimi
-- ⚙️ **Ayarlar Yönetimi** - Sistem konfigürasyonu
+### 🎨 Tasarım
+- **Modern ve Kurumsal Arayüz**: Apple, Stripe, Vercel ve Linear tasarım dilinden ilham alan premium dashboard
+- **Dark/Light Mode**: Otomatik ve manuel tema değiştirme
+- **Responsive Design**: Mobil, tablet ve desktop uyumlu
+- **Glassmorphism**: Modern cam efektleri ve yumuşak gölgeler
 
-## 🚀 Kurulum
+### 🔐 Güvenlik
+- **Rol Bazlı Yetkilendirme**: Admin, Operator, Viewer rolleri
+- **Hash Korumalı**: Güvenli şifre saklama
+- **Oturum Yönetimi**: Güvenli giriş/çıkış sistemi
 
-### 1. GitHub'a Yükleme
+### 📊 Dashboard
+- **Anlık İstatistikler**: Günlük üretim, anlık güç, verimlilik, çalışma süresi
+- **Grafikler**: Üretim ve verimlilik analizleri
+- **Veri Tabloları**: Detaylı üretim kayıtları
+- **Dışa Aktarım**: CSV formatında veri indirme
 
-```bash
-# Git'i başlat
-git init
+### 🔗 Google Sheets Entegrasyonu
+- **Otomatik Senkronizasyon**: Canlı veri çekme
+- **Veri Yazma**: Sistemden Google Sheets'e veri gönderme
+- **Tablo Oluşturma**: Sistem tarafından otomatik tablo yönetimi
 
-# Tüm dosyaları ekle
-git add .
+## Kurulum
 
-# İlk commit
-git commit -m "🎨 Modern Kojenerasyon Takip Sistemi - Glassmorphism Tasarım"
+### Gereksinimler
+- Modern web tarayıcısı (Chrome, Firefox, Safari, Edge)
+- Google Cloud Platform hesabı (Google Sheets API için)
 
-# GitHub repository bağlantısı
-git branch -M main
-git remote add origin https://github.com/kullanici-adiniz/kojenerasyon-takip-sistemi.git
+### Adım 1: Google Sheets API Ayarları
+1. [Google Cloud Console](https://console.cloud.google.com/) gidin
+2. Yeni bir proje oluşturun
+3. Google Sheets API'yi etkinleştirin
+4. API anahtarı oluşturun
+5. OAuth 2.0 kimlik bilgileri oluşturun
 
-# GitHub'a gönder
-git push -u origin main
+### Adım 2: Yapılandırma
+`script.js` dosyasında aşağıdaki alanları güncelleyin:
+
+```javascript
+const GOOGLE_SHEETS_CONFIG = {
+    API_KEY: 'SIZIN_API_ANAHTARINIZ',
+    CLIENT_ID: 'SIZIN_CLIENT_ID_NIZ',
+    DISCOVERY_DOCS: ['https://sheets.googleapis.com/$discovery/rest?version=v4'],
+    SCOPES: 'https://www.googleapis.com/auth/spreadsheets',
+    SPREADSHEET_ID: 'SIZIN_SPREADSHEET_ID_NIZ'
+};
 ```
 
-### 2. GitHub Pages ile Yayınlama
+### Adım 3: Google Sheets Hazırlama
+1. Yeni bir Google Sheets oluşturun
+2. "Production" adında bir sayfa oluşturun
+3. Aşağıdaki sütunları ekleyin:
+   - A: Tarih
+   - B: Vardiya
+   - C: Üretim (MWh)
+   - D: Verimlilik (%)
+   - E: Durum
 
-1. Repository'de "Settings" → "Pages"
-2. Source: "Deploy from a branch"
-3. Branch: "main" ve "/ (root)"
-4. "Save" deyin
-5. 5-10 dakika sonra site yayınlanır
+## Kullanım
 
-## 🎨 Tasarım Özellikleri
+### Giriş Bilgileri
+- **Admin**: admin@kojenerasyon.com / admin123
+- **Operator**: operator@kojenerasyon.com / operator123
+- **Viewer**: viewer@kojenerasyon.com / viewer123
 
-- **Glassmorphism Efektleri**: `backdrop-filter: blur(40px)` ile modern cam görünümü
-- **Koyu Tema**: `#0a0a1a` ana renk ile profesyonel görünüm
-- **Gradyan Arka Planlar**: Dinamik ve göz alıcı renk geçişleri
-- **Smooth Animasyonlar**: `cubic-bezier` ile akıcı geçişler
-- **Modern Tipografi**: Inter font ailesi
+### Tema Değiştirme
+- Header'daki tema butonuna tıklayarak Dark/Light mod arasında geçiş yapın
 
-## 📁 Dosya Yapısı
+### Mobil Kullanım
+- Sol üstteki menü butonuna tıklayarak sidebar'ı aç/kapat
+- Responsive tasarım sayesinde tüm ekran boyutlarında sorunsuz çalışır
 
-```
-kojenerasyon-takip-sistemi/
-├── index.html                 # Ana sayfa
-├── css/
-│   └── modern.css              # Modern stiller ve glassmorphism
-├── js/
-│   ├── app.js                  # Ana uygulama mantığı
-│   ├── auth.js                 # Kullanıcı yönetimi
-│   └── data-manager.js         # Veri yönetimi
-└── README.md                   # Bu dosya
-```
+## Teknolojiler
 
-## 🔧 Kullanılan Teknolojiler
+- **HTML5**: Modern ve anlamsal yapı
+- **CSS3**: CSS Variables, Flexbox, Grid
+- **JavaScript ES6+**: Modern JavaScript özellikleri
+- **Google Sheets API**: Veri yönetimi
+- **Responsive Design**: Mobil uyumluluk
 
-- **HTML5** - Modern semantic yapı
-- **CSS3** - Glassmorphism, backdrop-filter, gradients
-- **Vanilla JavaScript** - Sade ve performanslı kod
-- **CSS Variables** - Tema yönetimi
-- **Flexbox/Grid** - Modern layout
+## Tarayıcı Desteği
 
-## 🎯 Kullanım
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
 
-### Giriş Yap
-- Herhangi bir email ve şifre ile giriş yapabilirsiniz (demo modu)
+## Lisans
 
-### Bölümler
-- **Genel Bakış**: Sistem istatistikleri
-- **Veri Girişi**: Yeni veri ekleme
-- **Raporlar**: Veri analizleri
-- **Kullanıcılar**: Kullanıcı yönetimi
-- **Ayarlar**: Sistem ayarları
+Bu proje MIT lisansı ile lisanslanmıştır.
 
-## 🌟 Öne Çıkan Özellikler
+## Destek
 
-### Glassmorphism Tasarım
-```css
-background: rgba(255, 255, 255, 0.05);
-backdrop-filter: blur(40px) saturate(180%);
-border: 1px solid rgba(255, 255, 255, 0.1);
-```
-
-### Modern Animasyonlar
-```css
-transition: all 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-```
-
-### Dinamik Gradyanlar
-```css
-background: radial-gradient(circle at 20% 80%, rgba(139, 92, 246, 0.3) 0%, transparent 50%);
-```
-
-## 📱 Responsive Tasarım
-
-- **Mobil**: 320px ve üzeri
-- **Tablet**: 768px ve üzeri  
-- **Desktop**: 1024px ve üzeri
-
-## 🔒 Güvenlik
-
-- Local storage ile token yönetimi
-- Form validasyonları
-- XSS koruması
-
-## 🚀 Performans
-
-- Optimized CSS (644 satır)
-- Sade JavaScript (338 satır)
-- Minimum dependency
-- Hızlı yükleme süreleri
-
-## 📄 Lisans
-
-MIT License - Özgürce kullanabilirsiniz.
-
-## 🤝 Katkı
-
-Pull Request'ler bekleniyor! 🎉
+Sorular veya öneriler için lütfen iletişime geçin.
