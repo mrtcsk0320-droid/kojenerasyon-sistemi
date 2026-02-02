@@ -959,31 +959,26 @@ function toggleUserMenu() {
 
 // Google Sheets Integration - Backend API
 async function loadGoogleSheetsData() {
-    console.log('📊 Mobile test mode - using mock data');
-    console.log('🔗 Backend will be fixed later');
-    loadMockData();
-    return false;
-}
-
-function loadMockData() {
-    // Mock production data
-    const mockData = [];
-    const today = new Date();
-    
-    for (let i = 29; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
+    try {
+        const token = localStorage.getItem('authToken');
+        if (!token) return false;
         
-        mockData.push({
-            date: date.toISOString().split('T')[0],
-            shift: i % 3 === 0 ? 'Sabah' : i % 3 === 1 ? 'Öğle' : 'Gece',
-            production: Math.floor(Math.random() * 500) + 200,
-            efficiency: Math.floor(Math.random() * 30) + 70,
-            status: Math.random() > 0.1 ? 'active' : 'maintenance'
+        const response = await fetch(`${API_BASE_URL}/production`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
         });
+        
+        if (response.ok) {
+            const data = await response.json();
+            AppState.googleSheetsData.production = data;
+            return true;
+        }
+        return false;
+    } catch (error) {
+        console.error('Google Sheets veri yükleme hatası:', error);
+        return false;
     }
-    
-    AppState.googleSheetsData.production = mockData;
 }
 
 // Dashboard Data Management
