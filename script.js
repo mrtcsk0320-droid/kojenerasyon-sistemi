@@ -13,7 +13,7 @@ const AppState = {
 };
 
 // Google Sheets Configuration - Backend API
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'https://kojenerasyon-sistemi-2.onrender.com/api';
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', function() {

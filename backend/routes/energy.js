@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const googleSheetsService = require('../services/googleSheetsService');
-const auth = require('../middleware/auth');
+const { authenticateToken } = require('../middleware/auth');
 
 // Saatlik enerji verilerini Google Sheets'e kaydet
-router.post('/hourly', auth, async (req, res) => {
+router.post('/hourly', authenticateToken, async (req, res) => {
     try {
         const { sheetName, vardiya, data } = req.body;
         
@@ -93,7 +93,7 @@ async function getExistingRowCount(sheetName) {
 }
 
 // Aylık sayfaları oluştur (OCAK - ARALIK)
-router.post('/create-monthly-sheets', auth, async (req, res) => {
+router.post('/create-monthly-sheets', authenticateToken, async (req, res) => {
     try {
         const { year } = req.body;
         const currentYear = year || new Date().getFullYear();
