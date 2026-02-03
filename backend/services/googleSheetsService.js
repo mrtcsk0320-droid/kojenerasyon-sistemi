@@ -8,7 +8,7 @@ class GoogleSheetsService {
     this.sheets = null;
     this.spreadsheetId = config.google.spreadsheetId || 'demo-spreadsheet-id';
     // Mock mode'u kapat - gerçek API'yi dene
-    this.mockMode = false;
+    this.mockMode = false; // Gerçek Google Sheets API'yi dene
     this.initializeAuth();
   }
 
@@ -425,10 +425,19 @@ class GoogleSheetsService {
 
   async appendValues(sheetName, range, values) {
     if (this.mockMode) {
-      console.log(`🔧 Mock: Appending values to ${sheetName}!${range}`);
+      console.log(`🔧 Mock: Appending ${values.length} values to ${sheetName}!${range}`);
       const existingData = this.mockData.data[`${sheetName}!${range}`] || [];
       this.mockData.data[`${sheetName}!${range}`] = [...existingData, ...values];
-      return { updatedRange: `${sheetName}!${range}` };
+      
+      // Mock veriyi göster
+      console.log('📊 Mock Data Summary:');
+      console.log('- Sheet:', sheetName);
+      console.log('- Range:', range);
+      console.log('- New Records:', values.length);
+      console.log('- Total Records:', this.mockData.data[`${sheetName}!${range}`].length);
+      console.log('- Latest Data:', values[0]);
+      
+      return { updatedRange: `${sheetName}!${range}`, updatedRows: values.length };
     }
 
     try {

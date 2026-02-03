@@ -3,7 +3,7 @@ const router = express.Router();
 const googleSheetsService = require('../services/googleSheetsService');
 const { authenticateToken, checkPermissions } = require('../middleware/auth');
 
-// Saatlik enerji verilerini Google Sheets'e kaydet
+// Saatlik enerji verilerini Google Sheets'e kaydet (Duplicate kontrolü Apps Script'te)
 router.post('/hourly', authenticateToken, checkPermissions('write'), async (req, res) => {
     try {
         const { sheetName, vardiya, data } = req.body;
@@ -21,7 +21,7 @@ router.post('/hourly', authenticateToken, checkPermissions('write'), async (req,
         // Başlıkları kontrol et ve gerekirse ekle
         await ensureEnergySheetHeaders(sheetName);
         
-        // Verileri ekle
+        // Verileri doğrudan Google Sheets'e gönder (duplicate kontrolü Apps Script'te)
         const values = data.map(item => [
             item.date,
             item.time,
@@ -35,26 +35,24 @@ router.post('/hourly', authenticateToken, checkPermissions('write'), async (req,
             '' // Notlar
         ]);
         
-        // Mevcut verilerin sonuna ekle
-        const existingRows = await getExistingRowCount(sheetName);
-        const startRow = existingRows + 1;
+        // Verileri ekle (Apps Script duplicate kontrolü yapacak)
+        await googleSheetsService.appendValues(sheetName, 'A:J', values);
         
-        await googleSheetsService.appendValues(sheetName, `A${startRow}:J${startRow + values.length - 1}`, values);
-        
-        console.log(`${sheetName} sayfasına ${data.length} veri eklendi`);
+        console.log(`${sheetName} sayfasına ${data.length} veri gönderildi (Apps Script duplicate kontrolü)`);
         
         res.json({
             success: true,
-            message: `${sheetName} sayfasına ${data.length} saatlik veri başarıyla kaydedildi`,
+            message: `${sheetName} sayfasına ${data.length} saatlik veri gönderildi (duplicate kontrolü Apps Script'te)`,
             data: {
                 sheetName: sheetName,
                 vardiya: vardiya,
-                recordCount: data.length
+                recordCount: data.length,
+                note: 'Duplicate kontrolü Google Apps Script tarafından yapılacak'
             }
         });
         
     } catch (error) {
-        console.error('Saatlik veri kaydetme hatası:', error);
+        console.error('Saatlik veri gönderme hatası:', error);
         res.status(500).json({
             success: false,
             message: 'Sunucu hatası',
@@ -79,16 +77,6 @@ async function ensureEnergySheetHeaders(sheetName) {
     } catch (error) {
         console.error('Başlık kontrolü hatası:', error);
         throw error;
-    }
-}
-
-// Mevcut satır sayısını al
-async function getExistingRowCount(sheetName) {
-    try {
-        const existingData = await googleSheetsService.getValues(sheetName, 'A:A');
-        return existingData ? existingData.length : 0;
-    } catch (error) {
-        return 0;
     }
 }
 
