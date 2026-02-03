@@ -55,6 +55,11 @@ exports.handler = async (event, context) => {
             ]);
             
             // Google Sheets'e yaz
+            console.log('Attempting to write to Google Sheets...');
+            console.log('Spreadsheet ID:', SPREADSHEET_ID);
+            console.log('Sheet Name:', sheetName);
+            console.log('Values to write:', values);
+            
             const response = await sheets.spreadsheets.values.append({
                 spreadsheetId: SPREADSHEET_ID,
                 range: `${sheetName}!A:G`,
@@ -65,6 +70,7 @@ exports.handler = async (event, context) => {
             });
             
             console.log('Google Sheets response:', response.data);
+            console.log('Rows added:', response.data.updates?.updatedRows || 0);
             
             return {
                 statusCode: 200,
