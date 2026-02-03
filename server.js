@@ -46,5 +46,54 @@ app.post('/api/auth/login', (req, res) => {
   }
 });
 
+// Energy hourly data endpoint
+app.post('/api/energy/hourly', (req, res) => {
+  try {
+    const { sheetName, vardiya, data } = req.body;
+    
+    console.log('Energy data received:', { sheetName, vardiya, data });
+    
+    // Demo response - Google Sheets entegrasyonu olmadan
+    res.json({
+      success: true,
+      message: `${sheetName} sayfasına ${data.length} saatlik veri başarıyla kaydedildi (Demo mod)`,
+      savedCount: data.length,
+      sheetName: sheetName,
+      vardiya: vardiya
+    });
+  } catch (error) {
+    console.error('Energy save error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Kayıt sırasında hata oluştu'
+    });
+  }
+});
+
+// Create monthly sheets endpoint
+app.post('/api/energy/create-monthly-sheets', (req, res) => {
+  try {
+    const { year } = req.body;
+    
+    console.log('Create monthly sheets request:', year);
+    
+    // Demo response
+    const months = ['OCAK', 'ŞUBAT', 'MART', 'NİSAN', 'MAYIS', 'HAZİRAN', 
+                   'TEMMUZ', 'AĞUSTOS', 'EYLÜL', 'EKİM', 'KASIM', 'ARALIK'];
+    
+    res.json({
+      success: true,
+      message: `${year} yılı için ${months.length} aylık sayfa oluşturuldu (Demo mod)`,
+      createdSheets: months.map(month => `${month} ${year}`)
+    });
+  } catch (error) {
+    console.error('Create sheets error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Sayfa oluşturma sırasında hata oluştu'
+    });
+  }
+});
+
 // For Vercel serverless functions
 module.exports = app;
