@@ -95,5 +95,32 @@ app.post('/api/energy/create-monthly-sheets', (req, res) => {
   }
 });
 
+// Production data endpoint
+app.get('/api/production', (req, res) => {
+  try {
+    // Demo production data
+    res.json({
+      success: true,
+      data: {
+        dailyProduction: 360,
+        currentPower: 104,
+        efficiency: 84,
+        uptime: 20,
+        motors: [
+          { id: 'GM-1', status: true, totalHours: 0, totalProduction: 0, dailyHours: 0, dailyProduction: 0, avgProduction: 0 },
+          { id: 'GM-2', status: true, totalHours: 0, totalProduction: 0, dailyHours: 0, dailyProduction: 0, avgProduction: 0 },
+          { id: 'GM-3', status: true, totalHours: 0, totalProduction: 0, dailyHours: 0, dailyProduction: 0, avgProduction: 0 }
+        ]
+      }
+    });
+  } catch (error) {
+    console.error('Production data error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Veri alınamadı'
+    });
+  }
+});
+
 // For Vercel serverless functions
 module.exports = app;
