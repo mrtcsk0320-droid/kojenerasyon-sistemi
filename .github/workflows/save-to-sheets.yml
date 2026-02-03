@@ -1,0 +1,62 @@
+name: Save to Google Sheets
+
+on:
+  repository_dispatch:
+    types: [save-energy-data]
+
+jobs:
+  save-to-sheets:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: npm install google-auth-library googleapis
+      
+    - name: Save to Google Sheets
+      run: |
+        node -e "
+        const { GoogleAuth } = require('google-auth-library');
+        const { google } = require('googleapis');
+        
+        async function saveToSheets() {
+          const auth = new GoogleAuth({
+            credentials: {
+              client_email: '${{ secrets.GOOGLE_CLIENT_EMAIL }}',
+              private_key: '${{ secrets.GOOGLE_PRIVATE_KEY }}'.replace(/\\\\n/g, '\\n'),
+              project_id: '${{ secrets.GOOGLE_PROJECT_ID }}'
+            },
+            scopes: ['https://www.googleapis.com/auth/spreadsheets']
+          });
+          
+          const sheets = google.sheets({ version: 'v4', auth: auth });
+          const data = JSON.parse('${{ github.event.client_payload.data }}');
+          
+          const response = await sheets.spreadsheets.values.append({
+            spreadsheetId: '${{ secrets.GOOGLE_SHEETS_ID }}',
+            range: \`\${data.sheetName}!A:G\`,
+            valueInputOption: 'USER_ENTERED',
+            requestBody: {
+              values: data.data.map(item => [
+                item.date, item.time, item.vardiya,
+                item.aktif || '', item.reaktif || '',
+                item.aydemAktif || '', item.aydemReaktif || ''
+              ])
+            }
+          });
+          
+          console.log('Saved to Google Sheets:', response.data);
+        }
+        
+        saveToSheets().catch(console.error);
+        "
+      env:
+        GOOGLE_CLIENT_EMAIL: ${{ secrets.GOOGLE_CLIENT_EMAIL }}
+        GOOGLE_PRIVATE_KEY: ${{ secrets.GOOGLE_PRIVATE_KEY }}
+        GOOGLE_PROJECT_ID: ${{ secrets.GOOGLE_PROJECT_ID }}
+        GOOGLE_SHEETS_ID: ${{ secrets.GOOGLE_SHEETS_ID }}

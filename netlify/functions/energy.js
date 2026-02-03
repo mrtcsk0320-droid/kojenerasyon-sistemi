@@ -8,42 +8,38 @@ exports.handler = async (event, context) => {
             const data = JSON.parse(body);
             console.log('Energy data received:', data);
             
-            // Firebase Database'e kaydet
-            const firebaseUrl = process.env.FIREBASE_DATABASE_URL;
-            if (!firebaseUrl) {
-                throw new Error('Firebase database URL not configured');
+            // GitHub Actions'ı tetikle
+            const githubToken = process.env.GITHUB_TOKEN;
+            if (!githubToken) {
+                throw new Error('GitHub token not configured');
             }
             
-            // Veriyi Firebase formatına çevir
-            const firebaseData = {
-                sheetName: data.sheetName,
-                vardiya: data.vardiya,
-                timestamp: new Date().toISOString(),
-                data: data.data
-            };
-            
-            // Firebase'e gönder
-            const response = await fetch(`${firebaseUrl}energy/${Date.now()}.json`, {
-                method: 'PUT',
+            const response = await fetch('https://api.github.com/repos/kojenerasyon-admin/kojenerasyon-sistemi/dispatches', {
+                method: 'POST',
                 headers: {
+                    'Authorization': `token ${githubToken}`,
+                    'Accept': 'application/vnd.github.v3+json',
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(firebaseData)
+                body: JSON.stringify({
+                    event_type: 'save-energy-data',
+                    client_payload: { data: data }
+                })
             });
             
             if (!response.ok) {
-                throw new Error(`Firebase error: ${response.status}`);
+                throw new Error(`GitHub API error: ${response.status}`);
             }
             
             const result = await response.json();
-            console.log('Firebase response:', result);
+            console.log('GitHub response:', result);
             
             return {
                 statusCode: 200,
                 body: JSON.stringify({
                     success: true,
-                    message: 'Veriler Firebase\'e başarıyla kaydedildi',
-                    firebaseId: result.name,
+                    message: 'Veriler GitHub Actions ile Google Sheets\'e gönderildi',
+                    githubWorkflowId: result.id,
                     sheetName: data.sheetName,
                     rowsAdded: data.data.length
                 })
@@ -60,7 +56,7 @@ exports.handler = async (event, context) => {
             statusCode: 500,
             body: JSON.stringify({ 
                 error: error.message,
-                details: 'Firebase Database hatası'
+                details: 'GitHub Actions hatası'
             })
         };
     }
