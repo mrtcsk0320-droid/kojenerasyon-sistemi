@@ -131,7 +131,7 @@ backend/.env
 backend/logs/
 
 # Service account files
-*.json
 !package.json
 !package-lock.json
 !manifest.json
+!vercel.json

@@ -1,111 +1,58 @@
-const http = require('http');
-const fs = require('fs');
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
 const path = require('path');
-const { URL } = require('url');
 
-const port = 8113;
+// Import routes from backend folder
+const authRoutes = require('./backend/routes/auth');
+const productionRoutes = require('./backend/routes/production');
+const userRoutes = require('./backend/routes/users');
+const motorRoutes = require('./backend/routes/motors');
+const energyRoutes = require('./backend/routes/energy');
 
-const mimeTypes = {
-  '.html': 'text/html',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.json': 'application/json',
-  '.png': 'image/png',
-  '.jpg': 'image/jpg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.wav': 'audio/wav',
-  '.mp4': 'video/mp4',
-  '.woff': 'application/font-woff',
-  '.ttf': 'application/font-ttf',
-  '.eot': 'application/vnd.ms-fontobject',
-  '.otf': 'application/font-otf',
-  '.wasm': 'application/wasm'
-};
+const app = express();
 
-const server = http.createServer((req, res) => {
-  console.log(`${req.method} ${req.url}`);
+// CORS configuration - Allow all origins for Vercel deployment
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
+}));
 
-  // Proxy API requests to backend
-  if (req.url.startsWith('/api/')) {
-    const proxyReq = http.request({
-      hostname: 'localhost',
-      port: 3000,
-      path: req.url, // Backend'de /api prefix'i var
-      method: req.method,
-      headers: {
-        ...req.headers,
-        'host': 'localhost:3000'
-      }
-    }, (proxyRes) => {
-      // Copy headers but override CORS headers
-      const headers = { ...proxyRes.headers };
-      headers['Access-Control-Allow-Origin'] = '*';
-      headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS';
-      headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization';
-      
-      res.writeHead(proxyRes.statusCode, headers);
-      proxyRes.pipe(res);
-    });
-    
-    req.on('error', (err) => {
-      console.error('Proxy error:', err);
-      res.writeHead(502, { 'Content-Type': 'text/plain' });
-      res.end('Bad Gateway');
-    });
-    
-    req.pipe(proxyReq);
-    return;
-  }
-
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-  // Handle OPTIONS requests
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    res.end();
-    return;
-  }
-
-  // Serve index.html for root and SPA routes
-  let filePath = req.url === '/' ? '/index.html' : req.url;
-  
-  // Remove query string for file path resolution
-  if (filePath.includes('?')) {
-    filePath = filePath.split('?')[0];
-  }
-  
-  // Handle SPA routes - return index.html for all non-file requests
-  if (!path.extname(filePath)) {
-    filePath = '/index.html';
-  }
-  
-  filePath = path.join(__dirname, filePath);
-
-  const extname = String(path.extname(filePath)).toLowerCase();
-  const mimeType = mimeTypes[extname] || 'application/octet-stream';
-
-  fs.readFile(filePath, (error, content) => {
-    if (error) {
-      if(error.code == 'ENOENT') {
-        res.writeHead(404, { 'Content-Type': 'text/html' });
-        res.end('<h1>404 Not Found</h1>', 'utf-8');
-      } else {
-        res.writeHead(500);
-        res.end(`Server Error: ${error.code}`, 'utf-8');
-      }
-    } else {
-      res.writeHead(200, { 'Content-Type': mimeType });
-      res.end(content, 'utf-8');
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "http://localhost:3000", "http://127.0.0.1:3000", "http://localhost:8080", "http://127.0.0.1:8080"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"]
     }
-  });
+  },
+  crossOriginEmbedderPolicy: false
+}));
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/production', productionRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/motors', motorRoutes);
+app.use('/api/energy', energyRoutes);
+
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-server.listen(port, () => {
-  console.log(`🚀 Local server running at http://localhost:${port}`);
-  console.log(`📱 Test: http://localhost:${port}`);
-  console.log(`🔥 Enerji sayfası: http://localhost:${port}#energy`);
-});
+// For Vercel serverless functions
+module.exports = app;
