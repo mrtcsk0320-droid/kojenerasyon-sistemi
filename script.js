@@ -789,12 +789,8 @@ function saveHourlyData() {
         return;
     }
     
-    // Vardiya sor
-    const vardiya = prompt('Vardiya seçin (1/2/3):');
-    if (!vardiya || !['1', '2', '3'].includes(vardiya)) {
-        showNotification('Geçerli vardiya seçin (1, 2, veya 3)', 'error');
-        return;
-    }
+    // Vardiya seçimini atla - otomatik olarak 1 olarak ayarla
+    const vardiya = '1';
     
     const hourlyData = [];
     const rows = document.querySelectorAll('.hourly-row');
