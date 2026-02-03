@@ -13,16 +13,10 @@ const AppState = {
 };
 
 // Google Sheets Configuration - Backend API
-const API_BASE_URL = '/.netlify/functions'; // Netlify functions
+const API_BASE_URL = '/api'; // Proxy üzerinden backend'e git
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Application starting...');
-    
-    // Check for pending data first
-    checkPendingData();
-    
-    // Initialize application components
     initializeTheme();
     initializeEventListeners();
     checkAuthentication();
@@ -795,7 +789,7 @@ function saveHourlyData() {
         return;
     }
     
-    // Vardiya seçimini atla - otomatik olarak 1 olarak ayarla
+    // Vardiya seçimini atla, varsayılan olarak 1 kullan
     const vardiya = '1';
     
     const hourlyData = [];
@@ -807,29 +801,34 @@ function saveHourlyData() {
         const aktifInput = row.querySelector('.hourly-aktif');
         const reaktifInput = row.querySelector('.hourly-reaktif');
         
-        // Her saat için veri kaydet (değer olsa da olmasa da)
-        const aktifValue = aktifInput.value ? parseFloat(aktifInput.value) || 0 : null;
-        const reaktifValue = reaktifInput.value ? parseFloat(reaktifInput.value) || 0 : null;
-        
-        hourlyData.push({
-            date: date,
-            time: time,
-            vardiya: vardiya,
-            aktif: aktifValue,
-            reaktif: reaktifValue,
-            aydemAktif: 0, // Manuel girilecek
-            aydemReaktif: 0 // Manuel girilecek
-        });
-        
-        // Boş inputları sadece bilgi için kaydet
+        // Boş inputları kontrol et
         if (!aktifInput.value && !reaktifInput.value) {
             emptyInputs.push(time);
+        } else {
+            hourlyData.push({
+                date: date,
+                time: time,
+                vardiya: vardiya,
+                aktif: parseFloat(aktifInput.value) || 0,
+                reaktif: parseFloat(reaktifInput.value) || 0,
+                aydemAktif: 0, // Manuel girilecek
+                aydemReaktif: 0 // Manuel girilecek
+            });
         }
     });
     
-    // Tüm saatler kaydedildiği için boş input kontrolüne gerek yok
-    console.log('📊 Kaydedilen saatler:', hourlyData.length, 'saat');
-    console.log('📊 Boş saatler:', emptyInputs.length, 'saat');
+    // Boş input varsa sor
+    if (emptyInputs.length > 0) {
+        const confirmEmpty = confirm(`${emptyInputs.join(', ')} saatlerinde veri girilmemiş. Yine de kaydetmek istiyor musunuz?`);
+        if (!confirmEmpty) {
+            return;
+        }
+    }
+    
+    if (hourlyData.length === 0) {
+        showNotification('En az bir saatlik veri girin', 'error');
+        return;
+    }
     
     // Google Sheets'e kaydet
     saveHourlyDataToSheets(hourlyData, vardiya);
@@ -851,174 +850,37 @@ async function saveHourlyDataToSheets(hourlyData, vardiya) {
         const year = date.getFullYear();
         const sheetName = `${monthName} ${year}`;
         
-        console.log('🔍 Kaydedilecek veriler:', { sheetName, vardiya, data: hourlyData });
-        
-        // ÖNCELİKLE LocalStorage'a KAYDET (veri kaybını önlemek için)
-        const storageKey = `hourlyData_${sheetName}_${vardiya}`;
-        const existingData = JSON.parse(localStorage.getItem(storageKey) || '[]');
-        
-        // Frontend duplicate kontrolü - tarih ve saat bazında
-        const duplicates = [];
-        const validData = [];
-        
-        hourlyData.forEach(newItem => {
-            const isDuplicate = existingData.some(existingItem => 
-                existingItem.date === newItem.date && 
-                existingItem.time === newItem.time &&
-                existingItem.vardiya === newItem.vardiya
-            );
-            
-            if (isDuplicate) {
-                duplicates.push(`${newItem.date} ${newItem.time} (${newItem.vardiya}. vardiya)`);
-            } else {
-                validData.push(newItem);
-            }
+        // Google Sheets API çağrısı
+        const response = await fetch(`${API_BASE_URL}/energy/hourly`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                sheetName: sheetName,
+                vardiya: vardiya,
+                data: hourlyData
+            })
         });
         
-        // Eğer duplicate varsa uyarı göster
-        if (duplicates.length > 0) {
-            const choice = await showDuplicateDialog(duplicates);
-            
-            if (choice === 'cancel') {
-                showNotification('İşlem iptal edildi', 'info');
-                return;
-            } else if (choice === 'new') {
-                // Sadece yeni verileri kaydet
-                if (validData.length === 0) {
-                    showNotification('Tüm veriler zaten kayıtlı', 'warning');
-                    return;
-                }
-                console.log('📝 Sadece yeni veriler kaydedilecek:', validData.length);
-                showNotification(`${validData.length} yeni veri kaydedilecek, ${duplicates.length} veri atlandı`, 'info');
-            } else if (choice === 'override') {
-                // Tüm verileri kaydet (duplicate'ları da)
-                validData.push(...hourlyData.filter(item => 
-                    duplicates.some(dup => dup.includes(`${item.date} ${item.time}`))
-                ));
-                console.log('📝 Tüm veriler üzerine yazılacak');
-                showNotification(`${hourlyData.length} veri üzerine yazılacak`, 'info');
-            }
-        }
-        
-        // Kaydedilecek son veri seti
-        const dataToSave = validData.length > 0 ? validData : hourlyData;
-        
-        // ÖNCELİKLE LocalStorage'a KAYDET (veri kaybını önleme)
-        const pendingStorageKey = `pending_${storageKey}`;
-        const pendingData = {
-            data: dataToSave,
-            timestamp: new Date().toISOString(),
-            sheetName: sheetName,
-            vardiya: vardiya
-        };
-        localStorage.setItem(pendingStorageKey, JSON.stringify(pendingData));
-        console.log('💾 Veriler öncelikle LocalStorage\'a kaydedildi (bekleme modu)');
-        
-        // Backend'e veri gönder (duplicate kontrolü Apps Script'te)
-        let backendSuccess = false;
-        try {
-            showNotification('Veriler Google Sheets\'e gönderiliyor...', 'info');
-            
-            const response = await fetch(`${API_BASE_URL}/energy/hourly`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    sheetName: sheetName,
-                    vardiya: vardiya,
-                    data: dataToSave
-                })
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                console.log('✅ Backend kayıt sonucu:', result);
-                backendSuccess = true;
-                
-                // Başarılı olursa pending veriyi sil ve normal storage'a taşı
-                localStorage.removeItem(pendingStorageKey);
-                
-                const updatedStorage = [...existingData];
-                dataToSave.forEach(newItem => {
-                    const existingIndex = updatedStorage.findIndex(existingItem => 
-                        existingItem.date === newItem.date && 
-                        existingItem.time === newItem.time &&
-                        existingItem.vardiya === newItem.vardiya
-                    );
-                    
-                    if (existingIndex >= 0) {
-                        updatedStorage[existingIndex] = newItem; // Üzerine yaz
-                    } else {
-                        updatedStorage.push(newItem); // Yeni ekle
-                    }
-                });
-                
-                localStorage.setItem(storageKey, JSON.stringify(updatedStorage));
-                
-                // Mock mode kontrolü
-                if (result.note && result.note.includes('Apps Script')) {
-                    showNotification(`${sheetName} sayfasına ${dataToSave.length} saatlik veri başarıyla kaydedildi (Mock Mode - Demo)`, 'success');
-                } else {
-                    showNotification(`${sheetName} sayfasına ${dataToSave.length} saatlik veri başarıyla kaydedildi`, 'success');
-                }
-                
-                // Input'ları temizle
-                document.querySelectorAll('.hourly-inputs input').forEach(input => {
-                    input.value = '';
-                });
-                return;
-            } else {
-                const error = await response.text();
-                console.error('❌ Backend hatası:', error);
-                throw new Error('Backend hatası: ' + error);
-            }
-        } catch (backendError) {
-            console.error('❌ Backend bağlantısı başarısız:', backendError);
-            showNotification('Google Sheets bağlantısı başarısız. Veriler yerel olarak kaydedildi ve daha sonra tekrar denenir.', 'warning');
-        }
-        
-        // Backend başarısız olursa veriyi LocalStorage'da tut (sonradan göndermek için)
-        if (!backendSuccess) {
-            console.log('⏰ Veriler LocalStorage\'da bekletiliyor (sonradan gönderilmek üzere)');
-            showNotification(dataToSave.length + ' veri yerel olarak kaydedildi. İnternet bağlantısı geldiğinde otomatik gönderilecek.', 'warning');
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Google Sheets kayıt sonucu:', result);
+            showNotification(`${sheetName} sayfasına ${hourlyData.length} saatlik veri başarıyla kaydedildi`, 'success');
             
             // Input'ları temizle
             document.querySelectorAll('.hourly-inputs input').forEach(input => {
                 input.value = '';
             });
+        } else {
+            const error = await response.text();
+            console.error('Google Sheets kayıt hatası:', error);
+            showNotification('Kayıt sırasında hata oluştu', 'error');
         }
-        
     } catch (error) {
-        console.error('❌ Kayıt hatası:', error);
-        showNotification('Kayıt sırasında hata oluştu: ' + error.message, 'error');
-    }
-}
-
-// Sayfa yüklendiğinde bekleyen verileri kontrol et
-function checkPendingData() {
-    const keys = Object.keys(localStorage);
-    const pendingKeys = keys.filter(key => key.startsWith('pending_'));
-    
-    if (pendingKeys.length > 0) {
-        console.log('⏰ Bekleyen veriler bulundu:', pendingKeys.length, 'dosya');
-        showNotification(pendingKeys.length + ' bekleyen veri gönderimi denenecek...', 'info');
-        
-        pendingKeys.forEach(async (pendingKey) => {
-            try {
-                const pendingData = JSON.parse(localStorage.getItem(pendingKey));
-                console.log('� Bekleyen veri gönderiliyor:', pendingData.sheetName);
-                
-                // Burada backend'e tekrar gönderme mantığı eklenebilir
-                // Şimdilik sadece bildirim göster
-                
-                localStorage.removeItem(pendingKey);
-                console.log('✅ Bekleyen veri işlendi:', pendingData.sheetName);
-            } catch (error) {
-                console.error('❌ Bekleyen veri işlenemedi:', error);
-            }
-        });
+        console.error('Google Sheets bağlantı hatası:', error);
+        showNotification('Google Sheets bağlantısı kurulamadı', 'error');
     }
 }
 
@@ -1082,41 +944,14 @@ async function loadGoogleSheetsData() {
         
         if (response.ok) {
             const data = await response.json();
-            // Backend'den gelen veriyi array formatına çevir
-            AppState.googleSheetsData.production = Array.isArray(data) ? data : [];
-            console.log('📊 Production data loaded:', AppState.googleSheetsData.production.length, 'records');
+            AppState.googleSheetsData.production = data;
             return true;
         }
-        // Backend çalışmazsa mock data kullan
-        AppState.googleSheetsData.production = generateMockProductionData();
-        console.log('📊 Using mock production data');
         return false;
     } catch (error) {
         console.error('Google Sheets veri yükleme hatası:', error);
-        // Hata durumunda mock data kullan
-        AppState.googleSheetsData.production = generateMockProductionData();
-        console.log('📊 Using mock production data due to error');
         return false;
     }
-}
-
-// Mock veri üretme fonksiyonu
-function generateMockProductionData() {
-    const data = [];
-    const today = new Date();
-    
-    for (let i = 30; i >= 0; i--) {
-        const date = new Date(today);
-        date.setDate(date.getDate() - i);
-        
-        data.push({
-            date: date.toISOString().split('T')[0],
-            production: Math.floor(Math.random() * 200) + 300, // 300-500 MWh
-            efficiency: Math.floor(Math.random() * 15) + 80 // 80-95%
-        });
-    }
-    
-    return data;
 }
 
 // Dashboard Data Management
@@ -1213,11 +1048,12 @@ function animateValue(id, start, end, duration, suffix = '') {
 }
 
 // Chart Management
-function updateProductionChart(period) {
+function updateProductionChart() {
     const canvas = document.getElementById('productionChart');
     const ctx = canvas.getContext('2d');
+    const period = document.getElementById('productionPeriod').value;
     
-    const data = AppState.googleSheetsData.production || [];
+    const data = AppState.googleSheetsData.production;
     let chartData = [];
     
     if (period === 'day') {
@@ -1332,62 +1168,6 @@ async function refreshDashboardData() {
             Yenile
         `;
     }
-}
-
-// Custom Duplicate Dialog
-function showDuplicateDialog(duplicates) {
-    return new Promise((resolve) => {
-        // Modal HTML oluştur
-        const modalHTML = `
-            <div class="duplicate-modal-overlay" id="duplicateModal">
-                <div class="duplicate-modal">
-                    <div class="duplicate-modal-header">
-                        <h3>⚠️ Duplicate Veri Tespit Edildi</h3>
-                    </div>
-                    <div class="duplicate-modal-body">
-                        <p>Aşağıdaki veriler zaten kayıtlı:</p>
-                        <div class="duplicate-list">
-                            ${duplicates.map(dup => `<div class="duplicate-item">📅 ${dup}</div>`).join('')}
-                        </div>
-                        <p>Ne yapmak istersiniz?</p>
-                    </div>
-                    <div class="duplicate-modal-footer">
-                        <button class="btn btn-cancel" data-action="cancel">İptal</button>
-                        <button class="btn btn-new" data-action="new">Sadece Yeni Verileri Kaydet</button>
-                        <button class="btn btn-override" data-action="override">Üzerine Yaz</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Modal'i ekle
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
-        
-        // Event listener'ları ekle
-        const modal = document.getElementById('duplicateModal');
-        const buttons = modal.querySelectorAll('button');
-        
-        buttons.forEach(button => {
-            button.addEventListener('click', () => {
-                const action = button.getAttribute('data-action');
-                modal.remove();
-                resolve(action);
-            });
-        });
-        
-        // Overlay'a tıklayınca kapatma (isteğe bağlı)
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-                resolve('cancel');
-            }
-        });
-        
-        // Modal'i göster
-        setTimeout(() => {
-            modal.classList.add('show');
-        }, 10);
-    });
 }
 
 // Utility Functions
