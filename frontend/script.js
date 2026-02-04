@@ -12,6 +12,7 @@ const AppState = {
     }
 };
 
+<<<<<<< HEAD
 // Google Sheets Configuration - Demo mode for GitHub Pages
 const API_BASE_URL = 'https://jsonplaceholder.typicode.com'; // Demo API
 
@@ -65,6 +66,10 @@ async function demoAPICall(endpoint, method = 'GET', data = null) {
         }, 500); // Simulate network delay
     });
 }
+=======
+// Google Sheets Configuration - Backend API
+const API_BASE_URL = '/api'; // Proxy üzerinden backend'e git
+>>>>>>> 2b9143e268a60f1b90520ff005a1f4846c9fd9d6
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', function() {
@@ -451,7 +456,11 @@ function checkAuthentication() {
     }
 }
 
+<<<<<<< HEAD
 async function handleLogin(e) {
+=======
+function handleLogin(e) {
+>>>>>>> 2b9143e268a60f1b90520ff005a1f4846c9fd9d6
     e.preventDefault();
     
     const email = document.getElementById('email').value;
@@ -465,20 +474,43 @@ async function handleLogin(e) {
     loginBtn.querySelector('.btn-text').textContent = 'Doğrulanıyor...';
     errorDiv.style.display = 'none';
     
+<<<<<<< HEAD
     try {
         // Use demo API
         const response = await demoAPICall('auth/login', 'POST', { email, password });
         
         if (response.success) {
+=======
+    // Simulate API call delay
+    setTimeout(() => {
+        // Hash password for security
+        const hashedPassword = hashPassword(password);
+        
+        // Check credentials (in real app, this would be server-side)
+        const users = getUsers();
+        const user = users.find(u => u.email === email && u.password === hashedPassword);
+        
+        if (user) {
+>>>>>>> 2b9143e268a60f1b90520ff005a1f4846c9fd9d6
             // Show success state
             loginBtn.classList.remove('processing');
             loginBtn.classList.add('success');
             loginBtn.querySelector('.btn-text').textContent = 'Başarılı!';
             
+<<<<<<< HEAD
             AppState.currentUser = response.user;
             AppState.isAuthenticated = true;
             localStorage.setItem('currentUser', JSON.stringify(response.user));
             localStorage.setItem('authToken', response.token);
+=======
+            AppState.currentUser = user;
+            AppState.isAuthenticated = true;
+            localStorage.setItem('currentUser', JSON.stringify(user));
+            const authToken = 'demo-token-' + Date.now(); // Demo token
+            localStorage.setItem('authToken', authToken);
+            console.log('🔑 Login - Token set edildi:', authToken); // Debug
+            console.log('🔑 Login - localStorage items:', Object.keys(localStorage)); // Debug
+>>>>>>> 2b9143e268a60f1b90520ff005a1f4846c9fd9d6
             
             // Handle remember me
             if (rememberMe) {
@@ -495,17 +527,26 @@ async function handleLogin(e) {
                 showDashboard();
             }, 800);
         } else {
+<<<<<<< HEAD
             // Show error
             loginBtn.classList.remove('processing');
             loginBtn.querySelector('.btn-text').textContent = 'Giriş Yap';
             
             errorDiv.textContent = response.message;
+=======
+            // Show error with shake animation
+            loginBtn.classList.remove('processing');
+            loginBtn.querySelector('.btn-text').textContent = 'Giriş Yap';
+            
+            errorDiv.textContent = 'E-posta veya şifre hatalı';
+>>>>>>> 2b9143e268a60f1b90520ff005a1f4846c9fd9d6
             errorDiv.style.display = 'block';
             errorDiv.style.animation = 'none';
             setTimeout(() => {
                 errorDiv.style.animation = 'shake 0.5s ease-in-out';
             }, 10);
         }
+<<<<<<< HEAD
     } catch (error) {
         console.error('Login error:', error);
         loginBtn.classList.remove('processing');
@@ -514,6 +555,9 @@ async function handleLogin(e) {
         errorDiv.textContent = 'Bağlantı hatası';
         errorDiv.style.display = 'block';
     }
+=======
+    }, 1200);
+>>>>>>> 2b9143e268a60f1b90520ff005a1f4846c9fd9d6
 }
 
 // Keyboard Shortcuts
@@ -900,6 +944,7 @@ async function saveHourlyDataToSheets(hourlyData, vardiya) {
         const year = date.getFullYear();
         const sheetName = `${monthName} ${year}`;
         
+<<<<<<< HEAD
         // Use demo API
         const response = await demoAPICall('energy/hourly', 'POST', {
             sheetName: sheetName,
@@ -909,17 +954,46 @@ async function saveHourlyDataToSheets(hourlyData, vardiya) {
         
         if (response.success) {
             showNotification(response.message, 'success');
+=======
+        // Google Sheets API çağrısı
+        const response = await fetch(`${API_BASE_URL}/energy/hourly`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                sheetName: sheetName,
+                vardiya: vardiya,
+                data: hourlyData
+            })
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            console.log('Google Sheets kayıt sonucu:', result);
+            showNotification(`${sheetName} sayfasına ${hourlyData.length} saatlik veri başarıyla kaydedildi`, 'success');
+>>>>>>> 2b9143e268a60f1b90520ff005a1f4846c9fd9d6
             
             // Input'ları temizle
             document.querySelectorAll('.hourly-inputs input').forEach(input => {
                 input.value = '';
             });
         } else {
+<<<<<<< HEAD
+=======
+            const error = await response.text();
+            console.error('Google Sheets kayıt hatası:', error);
+>>>>>>> 2b9143e268a60f1b90520ff005a1f4846c9fd9d6
             showNotification('Kayıt sırasında hata oluştu', 'error');
         }
     } catch (error) {
         console.error('Google Sheets bağlantı hatası:', error);
+<<<<<<< HEAD
         showNotification('Bağlantı hatası', 'error');
+=======
+        showNotification('Google Sheets bağlantısı kurulamadı', 'error');
+>>>>>>> 2b9143e268a60f1b90520ff005a1f4846c9fd9d6
     }
 }
 
@@ -995,6 +1069,7 @@ async function loadGoogleSheetsData() {
 
 // Dashboard Data Management
 async function loadDashboardData() {
+<<<<<<< HEAD
     try {
         // Use demo API for production data
         const response = await demoAPICall('production');
@@ -1014,6 +1089,13 @@ async function loadDashboardData() {
         updateProductionChart();
         updateEfficiencyChart();
     }
+=======
+    await loadGoogleSheetsData();
+    updateStatsCards();
+    updateMotorCards();
+    updateProductionChart();
+    updateEfficiencyChart();
+>>>>>>> 2b9143e268a60f1b90520ff005a1f4846c9fd9d6
 }
 
 function updateMotorCards() {

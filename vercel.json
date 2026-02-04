@@ -16,6 +16,7 @@
       "dest": "/server.js"
     },
     {
+<<<<<<< HEAD
       "src": "/sw.js",
       "dest": "/frontend/sw.js"
     },
@@ -38,6 +39,10 @@
     {
       "src": "/(.*)",
       "dest": "/frontend/index.html"
+=======
+      "src": "/(.*)",
+      "dest": "/frontend/$1"
+>>>>>>> 2b9143e268a60f1b90520ff005a1f4846c9fd9d6
     }
   ]
 }
