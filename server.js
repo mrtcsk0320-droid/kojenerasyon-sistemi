@@ -1,10 +1,11 @@
 const express = require('express');
 const cors = require('cors');
-const { google } = require('googleapis');
+// const { google } = require('googleapis'); // Temporarily disabled
 
 const app = express();
 
-// Google Sheets Authentication
+// Google Sheets Authentication - Temporarily disabled
+/*
 const auth = new google.auth.GoogleAuth({
   credentials: {
     client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
@@ -14,6 +15,7 @@ const auth = new google.auth.GoogleAuth({
 });
 
 const sheets = google.sheets({ version: 'v4', auth });
+*/
 
 // CORS
 app.use(cors({
