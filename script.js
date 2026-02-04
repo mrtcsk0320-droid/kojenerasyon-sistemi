@@ -125,9 +125,6 @@ function initializeEventListeners() {
     
     // Forms
     initializeForms();
-    
-    // Keyboard shortcuts
-    document.addEventListener('keydown', handleKeyboardShortcuts);
 }
 
 // Navigation
