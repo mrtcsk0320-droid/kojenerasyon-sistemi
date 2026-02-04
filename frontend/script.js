@@ -12,8 +12,59 @@ const AppState = {
     }
 };
 
-// Google Sheets Configuration - Backend API
-const API_BASE_URL = '/api'; // Proxy üzerinden backend'e git
+// Google Sheets Configuration - Demo mode for GitHub Pages
+const API_BASE_URL = 'https://jsonplaceholder.typicode.com'; // Demo API
+
+// Demo API functions for GitHub Pages
+async function demoAPICall(endpoint, method = 'GET', data = null) {
+    // Simulate API calls for demo
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            if (endpoint.includes('auth/login')) {
+                const users = [
+                    { email: 'admin@kojenerasyon.com', password: 'admin123', name: 'Admin User', role: 'Admin' },
+                    { email: 'operator@kojenerasyon.com', password: 'operator123', name: 'Operator', role: 'Operator' },
+                    { email: 'viewer@kojenerasyon.com', password: 'viewer123', name: 'Viewer', role: 'Viewer' }
+                ];
+                
+                const user = users.find(u => u.email === data.email && u.password === data.password);
+                
+                if (user) {
+                    resolve({ 
+                        success: true, 
+                        user: { id: 1, email: user.email, name: user.name, role: user.role },
+                        token: 'demo-token-' + Date.now()
+                    });
+                } else {
+                    resolve({ success: false, message: 'E-posta veya şifre hatalı' });
+                }
+            } else if (endpoint.includes('production')) {
+                resolve({
+                    success: true,
+                    data: {
+                        dailyProduction: 360,
+                        currentPower: 104,
+                        efficiency: 84,
+                        uptime: 20,
+                        motors: [
+                            { id: 'GM-1', status: true, totalHours: 0, totalProduction: 0, dailyHours: 0, dailyProduction: 0, avgProduction: 0 },
+                            { id: 'GM-2', status: true, totalHours: 0, totalProduction: 0, dailyHours: 0, dailyProduction: 0, avgProduction: 0 },
+                            { id: 'GM-3', status: true, totalHours: 0, totalProduction: 0, dailyHours: 0, dailyProduction: 0, avgProduction: 0 }
+                        ]
+                    }
+                });
+            } else if (endpoint.includes('energy/hourly')) {
+                resolve({
+                    success: true,
+                    message: `${data.sheetName} sayfasına ${data.data.length} saatlik veri başarıyla kaydedildi (Demo mod)`,
+                    savedCount: data.data.length
+                });
+            } else {
+                resolve({ success: true, message: 'Demo mod - çalışıyor' });
+            }
+        }, 500); // Simulate network delay
+    });
+}
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', function() {
@@ -400,7 +451,7 @@ function checkAuthentication() {
     }
 }
 
-function handleLogin(e) {
+async function handleLogin(e) {
     e.preventDefault();
     
     const email = document.getElementById('email').value;
@@ -414,28 +465,20 @@ function handleLogin(e) {
     loginBtn.querySelector('.btn-text').textContent = 'Doğrulanıyor...';
     errorDiv.style.display = 'none';
     
-    // Simulate API call delay
-    setTimeout(() => {
-        // Hash password for security
-        const hashedPassword = hashPassword(password);
+    try {
+        // Use demo API
+        const response = await demoAPICall('auth/login', 'POST', { email, password });
         
-        // Check credentials (in real app, this would be server-side)
-        const users = getUsers();
-        const user = users.find(u => u.email === email && u.password === hashedPassword);
-        
-        if (user) {
+        if (response.success) {
             // Show success state
             loginBtn.classList.remove('processing');
             loginBtn.classList.add('success');
             loginBtn.querySelector('.btn-text').textContent = 'Başarılı!';
             
-            AppState.currentUser = user;
+            AppState.currentUser = response.user;
             AppState.isAuthenticated = true;
-            localStorage.setItem('currentUser', JSON.stringify(user));
-            const authToken = 'demo-token-' + Date.now(); // Demo token
-            localStorage.setItem('authToken', authToken);
-            console.log('🔑 Login - Token set edildi:', authToken); // Debug
-            console.log('🔑 Login - localStorage items:', Object.keys(localStorage)); // Debug
+            localStorage.setItem('currentUser', JSON.stringify(response.user));
+            localStorage.setItem('authToken', response.token);
             
             // Handle remember me
             if (rememberMe) {
@@ -452,18 +495,25 @@ function handleLogin(e) {
                 showDashboard();
             }, 800);
         } else {
-            // Show error with shake animation
+            // Show error
             loginBtn.classList.remove('processing');
             loginBtn.querySelector('.btn-text').textContent = 'Giriş Yap';
             
-            errorDiv.textContent = 'E-posta veya şifre hatalı';
+            errorDiv.textContent = response.message;
             errorDiv.style.display = 'block';
             errorDiv.style.animation = 'none';
             setTimeout(() => {
                 errorDiv.style.animation = 'shake 0.5s ease-in-out';
             }, 10);
         }
-    }, 1200);
+    } catch (error) {
+        console.error('Login error:', error);
+        loginBtn.classList.remove('processing');
+        loginBtn.querySelector('.btn-text').textContent = 'Giriş Yap';
+        
+        errorDiv.textContent = 'Bağlantı hatası';
+        errorDiv.style.display = 'block';
+    }
 }
 
 // Keyboard Shortcuts
@@ -850,37 +900,26 @@ async function saveHourlyDataToSheets(hourlyData, vardiya) {
         const year = date.getFullYear();
         const sheetName = `${monthName} ${year}`;
         
-        // Google Sheets API çağrısı
-        const response = await fetch(`${API_BASE_URL}/energy/hourly`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({
-                sheetName: sheetName,
-                vardiya: vardiya,
-                data: hourlyData
-            })
+        // Use demo API
+        const response = await demoAPICall('energy/hourly', 'POST', {
+            sheetName: sheetName,
+            vardiya: vardiya,
+            data: hourlyData
         });
         
-        if (response.ok) {
-            const result = await response.json();
-            console.log('Google Sheets kayıt sonucu:', result);
-            showNotification(`${sheetName} sayfasına ${hourlyData.length} saatlik veri başarıyla kaydedildi`, 'success');
+        if (response.success) {
+            showNotification(response.message, 'success');
             
             // Input'ları temizle
             document.querySelectorAll('.hourly-inputs input').forEach(input => {
                 input.value = '';
             });
         } else {
-            const error = await response.text();
-            console.error('Google Sheets kayıt hatası:', error);
             showNotification('Kayıt sırasında hata oluştu', 'error');
         }
     } catch (error) {
         console.error('Google Sheets bağlantı hatası:', error);
-        showNotification('Google Sheets bağlantısı kurulamadı', 'error');
+        showNotification('Bağlantı hatası', 'error');
     }
 }
 
@@ -956,11 +995,25 @@ async function loadGoogleSheetsData() {
 
 // Dashboard Data Management
 async function loadDashboardData() {
-    await loadGoogleSheetsData();
-    updateStatsCards();
-    updateMotorCards();
-    updateProductionChart();
-    updateEfficiencyChart();
+    try {
+        // Use demo API for production data
+        const response = await demoAPICall('production');
+        if (response.success) {
+            AppState.googleSheetsData.production = response.data;
+        }
+        
+        updateStatsCards();
+        updateMotorCards();
+        updateProductionChart();
+        updateEfficiencyChart();
+    } catch (error) {
+        console.error('Dashboard data loading error:', error);
+        // Use mock data on error
+        updateStatsCards();
+        updateMotorCards();
+        updateProductionChart();
+        updateEfficiencyChart();
+    }
 }
 
 function updateMotorCards() {
