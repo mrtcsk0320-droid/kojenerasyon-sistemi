@@ -29,6 +29,14 @@
       "dest": "/frontend/favicon.ico"
     },
     {
+      "src": "/styles.css",
+      "dest": "/frontend/styles.css"
+    },
+    {
+      "src": "/script.js",
+      "dest": "/frontend/script.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/frontend/index.html"
     }
