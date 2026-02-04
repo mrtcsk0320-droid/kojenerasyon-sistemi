@@ -284,15 +284,11 @@ async function loadDashboardData() {
         
         updateStatsCards();
         updateMotorCards();
-        updateProductionChart();
-        updateEfficiencyChart();
     } catch (error) {
         console.error('Dashboard data loading error:', error);
         // Use mock data on error
         updateStatsCards();
         updateMotorCards();
-        updateProductionChart();
-        updateEfficiencyChart();
     }
 }
 
@@ -484,19 +480,6 @@ function toggleSidebar() {
     }
 }
 
-function handleKeyboardShortcuts(e) {
-    // Ctrl/Cmd + K for quick search
-    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        // Implement quick search
-    }
-    
-    // Escape to close modals
-    if (e.key === 'Escape') {
-        // Close any open modals
-    }
-}
-
 function initializeForms() {
     // Login form
     const loginForm = document.getElementById('loginForm');
@@ -509,15 +492,6 @@ function initializeForms() {
     if (saveHourlyBtn) {
         saveHourlyBtn.addEventListener('click', saveHourlyData);
     }
-}
-
-// Chart initialization (placeholder)
-function updateProductionChart() {
-    // Implementation for production chart
-}
-
-function updateEfficiencyChart() {
-    // Implementation for efficiency chart
 }
 
 // Export functions for global access
