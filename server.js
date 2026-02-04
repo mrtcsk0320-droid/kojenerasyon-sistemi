@@ -2,8 +2,16 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
+const httpProxy = require('http-proxy');
 
 const port = 8113;
+
+// Backend API proxy
+const proxy = httpProxy.createProxyServer({
+  target: 'http://localhost:3000',
+  changeOrigin: true,
+  secure: false
+});
 
 const mimeTypes = {
   '.html': 'text/html',
