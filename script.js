@@ -145,7 +145,7 @@ function initializeNavigation() {
 
 function showPage(page) {
     // Hide all pages
-    const pages = document.querySelectorAll('.page');
+    const pages = document.querySelectorAll('.page, .dashboard-page, .login-page, .energy-page, .motors-page, .reports-page, .settings-page');
     pages.forEach(p => p.style.display = 'none');
     
     // Show selected page
@@ -167,6 +167,8 @@ function showPage(page) {
         if (page === 'dashboard') {
             loadDashboardData();
         }
+    } else {
+        console.error('Page not found:', page);
     }
 }
 
