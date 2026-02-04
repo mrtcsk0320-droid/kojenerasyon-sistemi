@@ -21,8 +21,7 @@
     },
     {
       "src": "/manifest.json",
-      "dest": "/frontend/manifest.json",
-      "headers": { "Cache-Control": "public, max-age=86400" }
+      "dest": "/frontend/manifest.json"
     },
     {
       "src": "/favicon.ico",

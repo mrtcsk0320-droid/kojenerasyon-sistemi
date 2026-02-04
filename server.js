@@ -1,21 +1,7 @@
 const express = require('express');
 const cors = require('cors');
-// const { google } = require('googleapis'); // Temporarily disabled
 
 const app = express();
-
-// Google Sheets Authentication - Temporarily disabled
-/*
-const auth = new google.auth.GoogleAuth({
-  credentials: {
-    client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-  },
-  scopes: ['https://www.googleapis.com/auth/spreadsheets'],
-});
-
-const sheets = google.sheets({ version: 'v4', auth });
-*/
 
 // CORS
 app.use(cors({
@@ -77,95 +63,26 @@ app.get('/api/production', (req, res) => {
   });
 });
 
-// Energy hourly - Google Sheets entegrasyonu
-app.post('/api/energy/hourly', async (req, res) => {
-  try {
-    const { sheetName, vardiya, data } = req.body;
-    
-    if (!process.env.GOOGLE_SPREADSHEET_ID) {
-      // Demo mod - Google Sheets ayarlanmamışsa
-      return res.json({
-        success: true,
-        message: `${sheetName} sayfasına ${data.length} saatlik veri başarıyla kaydedildi (Demo mod)`,
-        savedCount: data.length
-      });
-    }
-    
-    // Google Sheets'e veri yaz
-    const values = data.map(item => [
-      item.date,
-      item.time,
-      item.vardiya,
-      item.aktif,
-      item.reaktif,
-      item.aydemAktif,
-      item.aydemReaktif
-    ]);
-    
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID,
-      range: `${sheetName}!A:G`,
-      valueInputOption: 'USER_ENTERED',
-      resource: { values }
-    });
-    
-    res.json({
-      success: true,
-      message: `${sheetName} sayfasına ${data.length} saatlik veri başarıyla kaydedildi`,
-      savedCount: data.length
-    });
-  } catch (error) {
-    console.error('Google Sheets error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Google Sheets kayıt hatası: ' + error.message
-    });
-  }
+// Energy hourly - Demo only
+app.post('/api/energy/hourly', (req, res) => {
+  const { sheetName, vardiya, data } = req.body;
+  res.json({
+    success: true,
+    message: `${sheetName} sayfasına ${data.length} saatlik veri başarıyla kaydedildi (Demo mod)`,
+    savedCount: data.length
+  });
 });
 
-// Create monthly sheets
-app.post('/api/energy/create-monthly-sheets', async (req, res) => {
-  try {
-    const { year } = req.body;
-    const months = ['OCAK', 'ŞUBAT', 'MART', 'NİSAN', 'MAYIS', 'HAZİRAN', 
-                   'TEMMUZ', 'AĞUSTOS', 'EYLÜL', 'EKİM', 'KASIM', 'ARALIK'];
-    
-    if (!process.env.GOOGLE_SPREADSHEET_ID) {
-      // Demo mod
-      return res.json({
-        success: true,
-        message: `${year} yılı için ${months.length} aylık sayfa oluşturuldu (Demo mod)`,
-        createdSheets: months.map(month => `${month} ${year}`)
-      });
-    }
-    
-    // Google Sheets'te sayfaları oluştur
-    const requests = months.map(month => ({
-      addSheet: {
-        properties: {
-          title: `${month} ${year}`,
-          gridProperties: { rowCount: 1000, columnCount: 10 }
-        }
-      }
-    }));
-    
-    await sheets.spreadsheets.batchUpdate({
-      spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID,
-      resource: { requests }
-    });
-    
-    res.json({
-      success: true,
-      message: `${year} yılı için ${months.length} aylık sayfa oluşturuldu`,
-      createdSheets: months.map(month => `${month} ${year}`)
-    });
-  } catch (error) {
-    console.error('Create sheets error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Sayfa oluşturma hatası: ' + error.message
-    });
-  }
+// Create monthly sheets - Demo only
+app.post('/api/energy/create-monthly-sheets', (req, res) => {
+  const { year } = req.body;
+  const months = ['OCAK', 'ŞUBAT', 'MART', 'NİSAN', 'MAYIS', 'HAZİRAN', 
+                 'TEMMUZ', 'AĞUSTOS', 'EYLÜL', 'EKİM', 'KASIM', 'ARALIK'];
+  res.json({
+    success: true,
+    message: `${year} yılı için ${months.length} aylık sayfa oluşturuldu (Demo mod)`,
+    createdSheets: months.map(month => `${month} ${year}`)
+  });
 });
 
 module.exports = app;

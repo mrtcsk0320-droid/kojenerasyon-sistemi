@@ -4,18 +4,13 @@
   "description": "Kojenerasyon Takip Sistemi",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "googleapis": "^126.0.1"
+    "cors": "^2.8.5"
   },
   "engines": {
     "node": ">=16.0.0"
-  },
-  "keywords": ["kojenerasyon", "enerji", "takip"],
-  "author": "Your Name",
-  "license": "MIT"
+  }
 }
