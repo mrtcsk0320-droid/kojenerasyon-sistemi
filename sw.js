@@ -116,8 +116,6 @@ self.addEventListener('push', event => {
   
   const options = {
     body: event.data ? event.data.text() : 'Yeni bildirim',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -126,13 +124,11 @@ self.addEventListener('push', event => {
     actions: [
       {
         action: 'explore',
-        title: 'Görüntüle',
-        icon: '/icons/icon-96x96.png'
+        title: 'Görüntüle'
       },
       {
         action: 'close',
-        title: 'Kapat',
-        icon: '/icons/icon-96x96.png'
+        title: 'Kapat'
       }
     ]
   };
