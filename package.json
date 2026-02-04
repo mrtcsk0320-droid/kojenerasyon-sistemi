@@ -1,0 +1,21 @@
+{
+  "name": "kojenerasyon-sistemi",
+  "version": "1.0.0",
+  "description": "Kojenerasyon Takip Sistemi",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "googleapis": "^126.0.1"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "keywords": ["kojenerasyon", "enerji", "takip"],
+  "author": "Your Name",
+  "license": "MIT"
+}
